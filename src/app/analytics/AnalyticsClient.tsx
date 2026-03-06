@@ -97,8 +97,21 @@ export default function AnalyticsClient() {
           label: `${m.country_name} — ${m.meeting_name}`,
           meetingKey: m.meeting_key,
         }));
-        setMeetings(opts.reverse());
-        if (opts.length > 0) setSelectedMeeting(opts[0].meetingKey);
+        // Sort descending (latest first) but pick the most recent past meeting
+        const now = Date.now();
+        const past = data
+          .filter((m: { date_start?: string }) => m.date_start && new Date(m.date_start).getTime() <= now)
+          .sort((a: { date_start?: string }, b: { date_start?: string }) => 
+            new Date(b.date_start ?? 0).getTime() - new Date(a.date_start ?? 0).getTime()
+          );
+        const sortedOpts = opts.sort((a, b) => b.meetingKey - a.meetingKey);
+        setMeetings(sortedOpts);
+        // Default to Australian GP (1279) or most recent past meeting
+        const defaultMeeting = past.length > 0 
+          ? opts.find(o => o.meetingKey === (past[0] as { meeting_key: number }).meeting_key)
+          : null;
+        if (defaultMeeting) setSelectedMeeting(defaultMeeting.meetingKey);
+        else if (sortedOpts.length > 0) setSelectedMeeting(1279); // Australian GP fallback
       })
       .catch(() => {});
   }, [year]);
