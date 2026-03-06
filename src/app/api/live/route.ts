@@ -14,7 +14,10 @@ async function fetchLatest<T>(endpoint: string, params: Record<string, string> =
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const sessionKeyParam = searchParams.get('session_key');
+
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
@@ -25,16 +28,17 @@ export async function GET() {
 
       const tick = async () => {
         try {
-          // Get latest session
-          const sessions = await fetchLatest<Record<string, unknown>>('/sessions', { session_key: 'latest' });
+          // Get session — use param if provided, else latest
+          const sessions = await fetchLatest<Record<string, unknown>>('/sessions', {
+            session_key: sessionKeyParam ?? 'latest',
+          });
           const session = sessions[0];
           if (!session) {
-            send({ type: 'error', message: 'No active session' });
+            send({ type: 'error', message: 'No active session found' });
             return;
           }
 
           const sessionKey = String(session.session_key);
-          const meetingKey = String(session.meeting_key);
 
           // Parallel fetch
           const [drivers, positions, laps, stints, intervals] = await Promise.all([
@@ -52,14 +56,6 @@ export async function GET() {
           }
 
           // Latest position per driver
-          const posMap: Record<number, number> = {};
-          for (const p of positions) {
-            const dn = p.driver_number as number;
-            if (!posMap[dn] || new Date(p.date as string) > new Date(positions.find(x => x.driver_number === dn && posMap[dn] === x.position)?.date as string || 0)) {
-              posMap[dn] = p.position as number;
-            }
-          }
-          // Rebuild properly
           const latestPos: Record<number, Record<string, unknown>> = {};
           for (const p of positions) {
             const dn = p.driver_number as number;
@@ -132,7 +128,7 @@ export async function GET() {
               gapToLeader: interval?.gap_to_leader ?? null,
               interval: interval?.interval ?? null,
               isPitOut: lap?.is_pit_out_lap ?? false,
-              drs: null, // DRS available via /car_data but too expensive per tick; set null
+              drs: null,
             };
           }).sort((a, b) => (a.position as number) - (b.position as number));
 

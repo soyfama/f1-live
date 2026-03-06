@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend, ReferenceLine
@@ -26,6 +26,23 @@ interface RealStint {
   lap_start: number;
   lap_end: number;
   compound: string;
+}
+
+interface MeetingOption {
+  meetingKey: number;
+  label: string;
+}
+
+interface SessionOption {
+  sessionKey: number;
+  label: string;
+}
+
+interface DriverOption {
+  driverNumber: number;
+  acronym: string;
+  fullName: string;
+  team: string;
 }
 
 const TYRE_COLORS_MAP = {
@@ -101,31 +118,104 @@ export default function StrategyClient() {
   const [degradation, setDegradation] = useState({ SOFT: 0.15, MEDIUM: 0.08, HARD: 0.04 });
   const [strategies, setStrategies] = useState<Strategy[]>([]);
   const [selectedDriverStints, setSelectedDriverStints] = useState<RealStint[]>([]);
-  const [sessionKey, setSessionKey] = useState(9159); // Default to a known session
 
-  // Load real stint data
+  // Session selector state
+  const [year, setYear] = useState(2026);
+  const [meetings, setMeetings] = useState<MeetingOption[]>([]);
+  const [sessions, setSessions] = useState<SessionOption[]>([]);
+  const [drivers, setDrivers] = useState<DriverOption[]>([]);
+  const [selectedMeeting, setSelectedMeeting] = useState<number | null>(null);
+  const [selectedSession, setSelectedSession] = useState<number | null>(null);
+  const [selectedDriver, setSelectedDriver] = useState<number | null>(null);
+  const [driverLabel, setDriverLabel] = useState('');
+  const [sessionLabel, setSessionLabel] = useState('');
+  const [loadingStints, setLoadingStints] = useState(false);
+
+  // Fetch meetings
   useEffect(() => {
-    // Australia 2025 Race session
-    fetch('https://api.openf1.org/v1/stints?session_key=9159&driver_number=1')
+    fetch(`https://api.openf1.org/v1/meetings?year=${year}`)
       .then(r => r.json())
-      .then((data: RealStint[]) => {
-        if (data?.length) {
-          setSelectedDriverStints(data);
+      .then((data: Array<{ meeting_key: number; meeting_name: string; country_name: string }>) => {
+        const opts = data.map(m => ({ meetingKey: m.meeting_key, label: `${m.country_name} — ${m.meeting_name}` }));
+        setMeetings(opts.reverse());
+        if (opts.length > 0) setSelectedMeeting(opts[0].meetingKey);
+      })
+      .catch(() => {});
+  }, [year]);
+
+  // Fetch sessions when meeting changes
+  useEffect(() => {
+    if (!selectedMeeting) return;
+    fetch(`https://api.openf1.org/v1/sessions?meeting_key=${selectedMeeting}`)
+      .then(r => r.json())
+      .then((data: Array<{ session_key: number; session_name: string; session_type: string }>) => {
+        const opts = data.map(s => ({ sessionKey: s.session_key, label: s.session_name }));
+        setSessions(opts);
+        // Prefer Race session
+        const race = opts.find(s => s.label.toLowerCase().includes('race'));
+        const chosen = race ?? opts[opts.length - 1];
+        if (chosen) {
+          setSelectedSession(chosen.sessionKey);
+          setSessionLabel(chosen.label);
         }
       })
       .catch(() => {});
-  }, []);
+  }, [selectedMeeting]);
+
+  // Fetch drivers when session changes
+  useEffect(() => {
+    if (!selectedSession) return;
+    fetch(`https://api.openf1.org/v1/drivers?session_key=${selectedSession}`)
+      .then(r => r.json())
+      .then((data: Array<{ driver_number: number; name_acronym: string; full_name: string; team_name: string }>) => {
+        const opts: DriverOption[] = data
+          .filter(d => d.name_acronym)
+          .map(d => ({ driverNumber: d.driver_number, acronym: d.name_acronym, fullName: d.full_name ?? d.name_acronym, team: d.team_name ?? '' }))
+          .sort((a, b) => a.acronym.localeCompare(b.acronym));
+        setDrivers(opts);
+        if (opts.length > 0) {
+          setSelectedDriver(opts[0].driverNumber);
+          setDriverLabel(`${opts[0].acronym}`);
+        }
+      })
+      .catch(() => {});
+  }, [selectedSession]);
+
+  // Load real stints for selected driver/session
+  const loadStints = useCallback(async () => {
+    if (!selectedSession || !selectedDriver) return;
+    setLoadingStints(true);
+    try {
+      const data: RealStint[] = await fetch(
+        `https://api.openf1.org/v1/stints?session_key=${selectedSession}&driver_number=${selectedDriver}`
+      ).then(r => r.json());
+      if (data?.length) {
+        setSelectedDriverStints(data);
+        // Auto-set total laps from last stint end
+        const lastStint = data[data.length - 1];
+        if (lastStint?.lap_end) setTotalLaps(lastStint.lap_end);
+      } else {
+        setSelectedDriverStints([]);
+      }
+    } catch {
+      setSelectedDriverStints([]);
+    } finally {
+      setLoadingStints(false);
+    }
+  }, [selectedSession, selectedDriver]);
+
+  useEffect(() => {
+    loadStints();
+  }, [loadStints]);
 
   // Generate strategies
   useEffect(() => {
     const generated: Strategy[] = PRESET_STRATEGIES.map((preset, i) => {
-      // Distribute laps proportionally
       const totalPropLaps = preset.stints.reduce((sum, s) => sum + s.laps, 0);
       const stints = preset.stints.map(s => ({
         ...s,
         laps: Math.round((s.laps / totalPropLaps) * totalLaps),
       }));
-      // Adjust last stint to fill exactly
       const usedLaps = stints.slice(0, -1).reduce((sum, s) => sum + s.laps, 0);
       stints[stints.length - 1].laps = totalLaps - usedLaps;
 
@@ -194,7 +284,50 @@ export default function StrategyClient() {
       {/* Input Panel */}
       <aside className="w-72 shrink-0 border-r border-[#2a3040] bg-[#0d1120] p-6 overflow-y-auto">
         <h2 className="text-white font-bold text-lg mb-1">Strategy Simulator</h2>
-        <p className="text-gray-500 text-xs mb-6">Configure race parameters</p>
+        <p className="text-gray-500 text-xs mb-5">Configure race parameters</p>
+
+        {/* Session selector */}
+        <div className="space-y-3 mb-5 pb-5 border-b border-[#2a3040]">
+          <label className="text-gray-400 text-xs uppercase tracking-wider block">Reference Session</label>
+          <select
+            value={year}
+            onChange={e => setYear(Number(e.target.value))}
+            className="w-full bg-[#1a1f2e] border border-[#2a3040] text-white rounded-lg px-3 py-2 text-sm"
+          >
+            {[2026, 2025, 2024, 2023].map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+          <select
+            value={selectedMeeting ?? ''}
+            onChange={e => setSelectedMeeting(Number(e.target.value))}
+            className="w-full bg-[#1a1f2e] border border-[#2a3040] text-white rounded-lg px-3 py-2 text-sm"
+          >
+            {meetings.map(m => <option key={m.meetingKey} value={m.meetingKey}>{m.label}</option>)}
+          </select>
+          <select
+            value={selectedSession ?? ''}
+            onChange={e => {
+              const v = Number(e.target.value);
+              setSelectedSession(v);
+              const s = sessions.find(s => s.sessionKey === v);
+              if (s) setSessionLabel(s.label);
+            }}
+            className="w-full bg-[#1a1f2e] border border-[#2a3040] text-white rounded-lg px-3 py-2 text-sm"
+          >
+            {sessions.map(s => <option key={s.sessionKey} value={s.sessionKey}>{s.label}</option>)}
+          </select>
+          <select
+            value={selectedDriver ?? ''}
+            onChange={e => {
+              const v = Number(e.target.value);
+              setSelectedDriver(v);
+              const d = drivers.find(d => d.driverNumber === v);
+              if (d) setDriverLabel(d.acronym);
+            }}
+            className="w-full bg-[#1a1f2e] border border-[#2a3040] text-white rounded-lg px-3 py-2 text-sm"
+          >
+            {drivers.map(d => <option key={d.driverNumber} value={d.driverNumber}>{d.acronym} — {d.team?.replace(' F1 Team', '')}</option>)}
+          </select>
+        </div>
 
         <div className="space-y-5">
           <div>
@@ -203,13 +336,13 @@ export default function StrategyClient() {
               type="number"
               value={totalLaps}
               onChange={e => setTotalLaps(Math.max(1, Number(e.target.value)))}
-              className="w-full bg-[#1a1f2e] border border-[#2a3040] text-white rounded-lg px-3 py-2 text-sm"
+              className="w-full bg-[#1a1f2e] border border-[#2a3040] text-white rounded-lg px-3 py-2 text-sm font-mono"
             />
           </div>
 
           <div>
             <label className="text-gray-400 text-xs uppercase tracking-wider block mb-2">
-              Base Lap Time (s): {baseLapTime.toFixed(1)}s
+              Base Lap Time (s): <span className="font-mono">{baseLapTime.toFixed(1)}s</span>
             </label>
             <input
               type="range"
@@ -221,13 +354,13 @@ export default function StrategyClient() {
               className="w-full accent-[#e10600]"
             />
             <div className="flex justify-between text-xs text-gray-600 mt-1">
-              <span>70s</span><span>{formatLapTime(baseLapTime)}</span><span>150s</span>
+              <span className="font-mono">70s</span><span className="font-mono">{formatLapTime(baseLapTime)}</span><span className="font-mono">150s</span>
             </div>
           </div>
 
           <div>
             <label className="text-gray-400 text-xs uppercase tracking-wider block mb-2">
-              Pit Stop Loss: {pitLoss}s
+              Pit Stop Loss: <span className="font-mono">{pitLoss}s</span>
             </label>
             <input
               type="range"
@@ -239,7 +372,7 @@ export default function StrategyClient() {
               className="w-full accent-[#e10600]"
             />
             <div className="flex justify-between text-xs text-gray-600 mt-1">
-              <span>15s</span><span>{pitLoss}s</span><span>35s</span>
+              <span className="font-mono">15s</span><span className="font-mono">{pitLoss}s</span><span className="font-mono">35s</span>
             </div>
           </div>
 
@@ -270,11 +403,18 @@ export default function StrategyClient() {
           </div>
 
           {/* Real stints */}
-          {selectedDriverStints.length > 0 && (
-            <div>
-              <label className="text-gray-400 text-xs uppercase tracking-wider block mb-2">
-                Real Stints (VER · AUS 2025)
-              </label>
+          <div>
+            <label className="text-gray-400 text-xs uppercase tracking-wider block mb-2">
+              {loadingStints ? 'Loading stints…' : selectedDriverStints.length > 0
+                ? `Real Stints — ${driverLabel} · ${sessionLabel}`
+                : 'Real Stints (select session + driver)'}
+            </label>
+            {loadingStints ? (
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <div className="w-3 h-3 border border-[#e10600] border-t-transparent rounded-full animate-spin" />
+                Fetching…
+              </div>
+            ) : selectedDriverStints.length > 0 ? (
               <div className="space-y-1">
                 {selectedDriverStints.map(s => (
                   <div key={s.stint_number} className="flex items-center gap-2 text-xs bg-[#1a1f2e] rounded px-2 py-1.5">
@@ -282,21 +422,23 @@ export default function StrategyClient() {
                       backgroundColor: TYRE_COLORS_MAP[s.compound?.toUpperCase() as keyof typeof TYRE_COLORS_MAP] ?? '#888'
                     }} />
                     <span className="text-gray-300">{s.compound}</span>
-                    <span className="text-gray-500 ml-auto">L{s.lap_start}→L{s.lap_end ?? '?'}</span>
+                    <span className="text-gray-500 ml-auto font-mono">L{s.lap_start}→L{s.lap_end ?? '?'}</span>
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            ) : (
+              <p className="text-gray-600 text-xs italic">No stints found for this driver/session.</p>
+            )}
+          </div>
         </div>
       </aside>
 
       {/* Main content */}
       <div className="flex-1 p-6 overflow-auto">
         <div className="mb-6">
-          <h1 className="text-white font-bold text-xl">Race Strategy Comparison</h1>
+          <h1 className="text-white font-bold text-2xl">Race Strategy Comparison</h1>
           <p className="text-gray-400 text-sm mt-1">
-            {totalLaps} laps · Base {formatLapTime(baseLapTime)} · Pit loss {pitLoss}s
+            <span className="font-mono">{totalLaps}</span> laps · Base <span className="font-mono">{formatLapTime(baseLapTime)}</span> · Pit loss <span className="font-mono">{pitLoss}s</span>
           </p>
         </div>
 
@@ -306,7 +448,7 @@ export default function StrategyClient() {
             <span className="text-2xl">🏆</span>
             <div>
               <p className="text-white font-bold">Optimal: {bestStrategy.name}</p>
-              <p className="text-gray-400 text-sm">
+              <p className="text-gray-400 text-sm font-mono">
                 {formatRaceTime(bestStrategy.totalTime)} · {bestStrategy.pitCount} pit stop{bestStrategy.pitCount !== 1 ? 's' : ''}
               </p>
             </div>
@@ -314,7 +456,7 @@ export default function StrategyClient() {
               {bestStrategy.stints.map((s, i) => (
                 <div key={i} className="flex items-center gap-1 text-xs">
                   <span className="w-3 h-3 rounded-full" style={{ backgroundColor: TYRE_COLORS_MAP[s.compound] }} />
-                  <span className="text-gray-300">{s.laps}L</span>
+                  <span className="text-gray-300 font-mono">{s.laps}L</span>
                 </div>
               ))}
             </div>
@@ -334,7 +476,7 @@ export default function StrategyClient() {
               />
               <YAxis
                 tickFormatter={(v) => formatRaceTime(v)}
-                tick={{ fill: '#6b7280', fontSize: 10 }}
+                tick={{ fill: '#6b7280', fontSize: 10, fontFamily: 'monospace' }}
                 width={80}
               />
               <Tooltip content={<CustomTooltip />} />
@@ -344,6 +486,16 @@ export default function StrategyClient() {
                   return <span style={{ color: '#e5e7eb', fontSize: 12 }}>{strat?.name ?? value}</span>;
                 }}
               />
+              {/* Pit stop reference lines from real data */}
+              {selectedDriverStints.length > 1 && selectedDriverStints.slice(1).map((s, i) => (
+                <ReferenceLine
+                  key={i}
+                  x={s.lap_start}
+                  stroke="#FFD700"
+                  strokeDasharray="4 3"
+                  label={{ value: `PIT`, position: 'top', fill: '#FFD700', fontSize: 9 }}
+                />
+              ))}
               {strategies.map(strat => (
                 <Line
                   key={strat.id}
@@ -393,7 +545,7 @@ export default function StrategyClient() {
                         {strat.stints.map((s, j) => (
                           <span key={j} className="flex items-center gap-1 text-xs">
                             <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: TYRE_COLORS_MAP[s.compound] }} />
-                            <span className="text-gray-300">{s.laps}L</span>
+                            <span className="text-gray-300 font-mono">{s.laps}L</span>
                           </span>
                         ))}
                       </div>
