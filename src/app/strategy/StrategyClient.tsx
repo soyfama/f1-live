@@ -135,19 +135,13 @@ export default function StrategyClient() {
   useEffect(() => {
     fetch(`https://api.openf1.org/v1/meetings?year=${year}`)
       .then(r => r.json())
-      .then((data: Array<{ meeting_key: number; meeting_name: string; country_name: string }>) => {
-        const opts = data.map(m => ({ meetingKey: m.meeting_key, label: `${m.country_name} — ${m.meeting_name}` }));
+      .then((data: Array<{ meeting_key: number; meeting_name: string; country_name: string; date_start?: string }>) => {
+        const opts = data.map(m => ({ meetingKey: m.meeting_key, label: `${m.country_name} — ${m.meeting_name}`, dateStart: m.date_start }));
         const now = Date.now();
-        const pastMeetings = data
-          .filter((m: { date_start?: string }) => m.date_start && new Date(m.date_start).getTime() <= now)
-          .sort((a: { date_start?: string }, b: { date_start?: string }) =>
-            new Date(b.date_start ?? 0).getTime() - new Date(a.date_start ?? 0).getTime()
-          );
-        const sortedOpts = opts.sort((a, b) => b.meetingKey - a.meetingKey);
+        const sortedOpts = [...opts].sort((a, b) => b.meetingKey - a.meetingKey);
         setMeetings(sortedOpts);
-        const defaultKey = pastMeetings.length > 0
-          ? (pastMeetings[0] as { meeting_key: number }).meeting_key
-          : 1279;
+        const pastMeetings = sortedOpts.filter(m => m.dateStart && new Date(m.dateStart).getTime() <= now);
+        const defaultKey = pastMeetings.length > 0 ? pastMeetings[0].meetingKey : 1279;
         setSelectedMeeting(defaultKey);
       })
       .catch(() => {});
