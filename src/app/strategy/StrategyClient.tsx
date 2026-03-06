@@ -137,8 +137,18 @@ export default function StrategyClient() {
       .then(r => r.json())
       .then((data: Array<{ meeting_key: number; meeting_name: string; country_name: string }>) => {
         const opts = data.map(m => ({ meetingKey: m.meeting_key, label: `${m.country_name} — ${m.meeting_name}` }));
-        setMeetings(opts.reverse());
-        if (opts.length > 0) setSelectedMeeting(opts[0].meetingKey);
+        const now = Date.now();
+        const pastMeetings = data
+          .filter((m: { date_start?: string }) => m.date_start && new Date(m.date_start).getTime() <= now)
+          .sort((a: { date_start?: string }, b: { date_start?: string }) =>
+            new Date(b.date_start ?? 0).getTime() - new Date(a.date_start ?? 0).getTime()
+          );
+        const sortedOpts = opts.sort((a, b) => b.meetingKey - a.meetingKey);
+        setMeetings(sortedOpts);
+        const defaultKey = pastMeetings.length > 0
+          ? (pastMeetings[0] as { meeting_key: number }).meeting_key
+          : 1279;
+        setSelectedMeeting(defaultKey);
       })
       .catch(() => {});
   }, [year]);
@@ -478,6 +488,7 @@ export default function StrategyClient() {
                 tickFormatter={(v) => formatRaceTime(v)}
                 tick={{ fill: '#6b7280', fontSize: 10, fontFamily: 'monospace' }}
                 width={80}
+                domain={['auto', 'auto']}
               />
               <Tooltip content={<CustomTooltip />} />
               <Legend
