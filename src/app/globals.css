@@ -1,0 +1,187 @@
+@import "tailwindcss";
+
+/* ─── F1 Timing Color System ─────────────────────────────────────────────── */
+:root {
+  --bg-primary:   #0a0e1a;
+  --bg-card:      #12172a;
+  --bg-card-alt:  #1a1f2e;
+  --border:       #1e2538;
+  --border-bright:#2a3040;
+  --text:         #e5e7eb;
+  --text-muted:   #6b7280;
+
+  /* Official F1 timing colors */
+  --purple:   #BF00FF;
+  --green:    #00FF00;
+  --yellow:   #FFFF00;
+  --red-time: #FF0000;
+  --grey-time:#555555;
+
+  /* Flags */
+  --flag-green:  #00FF00;
+  --flag-yellow: #FFFF00;
+  --flag-sc:     #FF8C00;
+  --flag-red:    #FF0000;
+
+  /* Brand */
+  --f1-red:   #E10600;
+}
+
+/* ─── Reset & Base ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Numbers always monospace */
+.mono { font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace; }
+
+/* ─── Scrollbar ──────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: #2a3040; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #3a4050; }
+
+/* ─── Animations ──────────────────────────────────────────────────────────── */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+.animate-pulse-dot { animation: pulse-dot 1s ease-in-out infinite; }
+
+@keyframes flash-green {
+  0%   { background-color: rgba(0,255,0,0.25); }
+  100% { background-color: transparent; }
+}
+.flash-improved { animation: flash-green 1.2s ease-out forwards; }
+
+@keyframes flash-purple {
+  0%   { background-color: rgba(191,0,255,0.25); }
+  100% { background-color: transparent; }
+}
+.flash-session-best { animation: flash-purple 1.2s ease-out forwards; }
+
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-slide-down { animation: slide-down 0.2s ease-out; }
+
+/* ─── F1 Timing Table Sector Colors ──────────────────────────────────────── */
+.sector-purple { color: var(--purple); }
+.sector-green  { color: var(--green); }
+.sector-yellow { color: var(--yellow); }
+.sector-white  { color: #ffffff; }
+.sector-grey   { color: var(--grey-time); }
+
+.sector-bg-purple { background: rgba(191,0,255,0.15); }
+.sector-bg-green  { background: rgba(0,255,0,0.12); }
+.sector-bg-yellow { background: rgba(255,255,0,0.10); }
+
+/* ─── Mini sector bars ────────────────────────────────────────────────────── */
+.mini-sector {
+  display: inline-block;
+  width: 6px;
+  height: 10px;
+  border-radius: 1px;
+  margin-right: 1px;
+  vertical-align: middle;
+}
+
+/* ─── F1 Card ─────────────────────────────────────────────────────────────── */
+.f1-card {
+  background: var(--bg-card-alt);
+  border: 1px solid var(--border-bright);
+  border-radius: 0.75rem;
+}
+
+/* ─── DRS indicator ──────────────────────────────────────────────────────── */
+.drs-active {
+  color: #00FF00;
+  font-weight: 800;
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
+}
+.drs-inactive { color: #374151; font-size: 0.65rem; }
+
+/* ─── Position badges ─────────────────────────────────────────────────────── */
+.pos-1 { color: #FFD700; font-weight: 900; }
+.pos-2 { color: #C0C0C0; font-weight: 900; }
+.pos-3 { color: #CD7F32; font-weight: 900; }
+.pos-n { color: #9ca3af; font-weight: 700; }
+
+/* ─── Flag banner ─────────────────────────────────────────────────────────── */
+.flag-banner {
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ─── Tyre badge ──────────────────────────────────────────────────────────── */
+.tyre-badge {
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 900;
+  color: #000;
+  line-height: 1;
+}
+.tyre-soft         { background: #FF3333; }
+.tyre-medium       { background: #FFFF00; }
+.tyre-hard         { background: #FFFFFF; }
+.tyre-intermediate { background: #39B54A; color: #fff; }
+.tyre-wet          { background: #0067FF; color: #fff; }
+
+/* ─── Timing table ─────────────────────────────────────────────────────────── */
+.timing-table th {
+  background: #0d1120;
+  color: #4b5563;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.5rem 0.5rem;
+  border-bottom: 1px solid var(--border-bright);
+  white-space: nowrap;
+}
+.timing-table td {
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid rgba(42,48,64,0.5);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+.timing-table tr:hover td { background: rgba(255,255,255,0.03); }
+
+/* Team color stripe */
+.team-stripe {
+  width: 3px;
+  min-width: 3px;
+  height: 100%;
+  display: block;
+  border-radius: 2px;
+}
+
+/* ─── Navbar ──────────────────────────────────────────────────────────────── */
+.navbar-link {
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: all 0.15s;
+  color: #6b7280;
+}
+.navbar-link:hover { color: #fff; background: rgba(255,255,255,0.06); }
+.navbar-link.active { color: #fff; background: var(--bg-card-alt); border: 1px solid var(--border-bright); }
