@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  Cell,
+  Cell, LabelList,
 } from 'recharts';
 import { formatLapTime } from '@/lib/openf1';
 import { getTeamColor } from '@/lib/f1-colors';
@@ -304,19 +304,22 @@ export default function AnalyticsClient() {
   return (
     <div className="flex gap-0 min-h-[calc(100vh-3.5rem)]">
       {/* Sidebar */}
-      <aside className="w-48 min-w-[150px] shrink-0 border-r border-[#2a3040] bg-[#0d1120] py-6 px-3">
-        <h2 className="text-gray-500 text-xs uppercase tracking-wider px-2 mb-3">Analysis</h2>
-        <nav className="space-y-1">
+      <aside className="w-44 shrink-0 border-r border-[#1e2538] bg-[#0d1120] py-5 px-2.5">
+        <p className="text-[#4b5563] text-[10px] uppercase tracking-widest px-2 mb-3 font-semibold">Analysis</p>
+        <nav className="space-y-0.5">
           {TABS.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+              className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all ${
                 activeTab === tab.id
-                  ? 'bg-[#1a1f2e] text-white font-medium border border-[#2a3040]'
-                  : 'text-gray-400 hover:text-white hover:bg-[#1a1f2e]/50'
+                  ? 'bg-[#1a1f2e] text-white font-semibold border border-[#2a3040] shadow-sm'
+                  : 'text-[#6b7280] hover:text-white hover:bg-[#1a1f2e]/60 hover:border-[#2a3040]'
               }`}
             >
+              {activeTab === tab.id && (
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#e10600] mr-2 align-middle" />
+              )}
               {tab.label}
             </button>
           ))}
@@ -324,10 +327,10 @@ export default function AnalyticsClient() {
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 p-6 overflow-auto">
+      <div className="flex-1 px-6 py-5 overflow-auto">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-white font-bold text-2xl mb-3">Session Analytics</h1>
+        <div className="mb-5 border-b border-[#1e2538] pb-4">
+          <h1 className="text-white font-bold text-xl mb-3">Session Analytics</h1>
           {/* Selectors */}
           <div className="flex flex-wrap gap-3 items-center">
             <select
@@ -398,10 +401,23 @@ export default function AnalyticsClient() {
                           {driverChartData.map((entry, i) => (
                             <Cell key={i} fill={entry.fill} />
                           ))}
+                          <LabelList
+                            dataKey="bestLap"
+                            position="right"
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            formatter={(v: any) => typeof v === 'number' ? formatLapTime(v) : ''}
+                            style={{ fill: '#9ca3af', fontSize: 10, fontFamily: 'monospace' }}
+                          />
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
-                  ) : <p className="text-gray-500 text-center py-12">No data available</p>}
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-16 text-[#4b5563]">
+                      <p className="text-3xl mb-2">📊</p>
+                      <p className="text-sm font-medium text-[#6b7280]">No lap data available</p>
+                      <p className="text-xs mt-1">Select a session and click Load</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Driver table */}
@@ -468,12 +484,12 @@ export default function AnalyticsClient() {
               <div className="bg-[#1a1f2e] border border-[#2a3040] rounded-xl p-6">
                 <h3 className="text-white font-semibold mb-4">Best Lap by Team</h3>
                 {teamChartData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={Math.max(300, teamChartData.length * 36)}>
+                  <ResponsiveContainer width="100%" height={Math.max(300, teamChartData.length * 40)}>
                     <BarChart
                       data={teamChartData}
                       layout="vertical"
-                      margin={{ left: 10, right: 80 }}
-                      barSize={16}
+                      margin={{ left: 10, right: 90 }}
+                      barSize={18}
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke="#2a3040" horizontal={false} />
                       <XAxis
@@ -486,17 +502,30 @@ export default function AnalyticsClient() {
                         type="category"
                         dataKey="name"
                         tick={{ fill: '#e5e7eb', fontSize: 11 }}
-                        width={100}
+                        width={110}
                       />
                       <Tooltip content={<CustomTooltip />} />
                       <Bar dataKey="bestLap" radius={[0, 4, 4, 0]}>
                         {teamChartData.map((entry, i) => (
                           <Cell key={i} fill={entry.fill} />
                         ))}
+                        <LabelList
+                          dataKey="bestLap"
+                          position="right"
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          formatter={(v: any) => typeof v === 'number' ? formatLapTime(v) : ''}
+                          style={{ fill: '#9ca3af', fontSize: 10, fontFamily: 'monospace' }}
+                        />
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
-                ) : <p className="text-gray-500 text-center py-12">No data available</p>}
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-16 text-[#4b5563]">
+                    <p className="text-3xl mb-2">🏎️</p>
+                    <p className="text-sm font-medium text-[#6b7280]">No team data available</p>
+                    <p className="text-xs mt-1">Select a session and click Load</p>
+                  </div>
+                )}
               </div>
             )}
 

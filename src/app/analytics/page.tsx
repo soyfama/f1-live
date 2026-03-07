@@ -5,5 +5,9 @@ export const metadata = {
 };
 
 export default function AnalyticsPage() {
-  return <AnalyticsClient />;
+  return (
+    <div className="max-w-screen-2xl mx-auto">
+      <AnalyticsClient />
+    </div>
+  );
 }

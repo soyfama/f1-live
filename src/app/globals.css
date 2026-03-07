@@ -54,6 +54,7 @@ body {
   50% { opacity: 0.3; }
 }
 .animate-pulse-dot { animation: pulse-dot 1s ease-in-out infinite; }
+.animate-pulse-fast { animation: pulse-dot 0.6s ease-in-out infinite; }
 
 @keyframes flash-green {
   0%   { background-color: rgba(0,255,0,0.25); }
@@ -99,6 +100,13 @@ body {
   background: var(--bg-card-alt);
   border: 1px solid var(--border-bright);
   border-radius: 0.75rem;
+}
+
+/* ─── Section header separator ───────────────────────────────────────────── */
+.section-sep {
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
 }
 
 /* ─── DRS indicator ──────────────────────────────────────────────────────── */
@@ -185,3 +193,46 @@ body {
 }
 .navbar-link:hover { color: #fff; background: rgba(255,255,255,0.06); }
 .navbar-link.active { color: #fff; background: var(--bg-card-alt); border: 1px solid var(--border-bright); }
+
+/* ─── Page container helper ───────────────────────────────────────────────── */
+.page-container {
+  max-width: 96rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+}
+
+/* ─── Status badge ────────────────────────────────────────────────────────── */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ─── Empty state ─────────────────────────────────────────────────────────── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  color: #4b5563;
+  text-align: center;
+  gap: 0.5rem;
+}
+
+/* ─── Smooth transitions for interactive elements ─────────────────────────── */
+select, input, button { transition: border-color 0.15s, box-shadow 0.15s; }
+select:focus, input:focus {
+  outline: none;
+  border-color: #e10600 !important;
+  box-shadow: 0 0 0 2px rgba(225, 6, 0, 0.15);
+}
+
+/* ─── Better table styles ─────────────────────────────────────────────────── */
+.timing-table tbody tr:last-child td { border-bottom: none; }

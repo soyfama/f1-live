@@ -236,19 +236,33 @@ export default function StrategyClient() {
     setStrategies(generated);
   }, [totalLaps, baseLapTime, pitLoss, degradation]);
 
-  // Build chart data
-  const chartData = useMemo(() => {
-    if (!strategies.length) return [];
-    const data: Array<Record<string, number>> = [];
+  // Build chart data (cumulative + delta)
+  const { chartData, deltaData } = useMemo(() => {
+    if (!strategies.length) return { chartData: [], deltaData: [] };
+    const allLapTimes: Record<string, number[]> = {};
+    for (const strat of strategies) {
+      allLapTimes[strat.id] = simulateStrategy(strat.stints, baseLapTime, pitLoss, totalLaps, degradation);
+    }
+    const chartData: Array<Record<string, number>> = [];
+    const deltaData: Array<Record<string, number>> = [];
     for (let lap = 1; lap <= totalLaps; lap++) {
       const row: Record<string, number> = { lap };
+      const deltaRow: Record<string, number> = { lap };
+      // Find best (min) cumulative time at this lap
+      let minTime = Infinity;
       for (const strat of strategies) {
-        const lapTimes = simulateStrategy(strat.stints, baseLapTime, pitLoss, totalLaps, degradation);
-        row[strat.id] = lapTimes[lap - 1] ?? 0;
+        const t = allLapTimes[strat.id][lap - 1] ?? 0;
+        if (t > 0 && t < minTime) minTime = t;
       }
-      data.push(row);
+      for (const strat of strategies) {
+        const t = allLapTimes[strat.id][lap - 1] ?? 0;
+        row[strat.id] = t;
+        deltaRow[strat.id] = t > 0 ? parseFloat((t - minTime).toFixed(3)) : 0;
+      }
+      chartData.push(row);
+      deltaData.push(deltaRow);
     }
-    return data;
+    return { chartData, deltaData };
   }, [strategies, totalLaps, baseLapTime, pitLoss, degradation]);
 
   const bestStrategy = useMemo(
@@ -286,9 +300,9 @@ export default function StrategyClient() {
   return (
     <div className="flex min-h-[calc(100vh-3.5rem)]">
       {/* Input Panel */}
-      <aside className="w-72 shrink-0 border-r border-[#2a3040] bg-[#0d1120] p-6 overflow-y-auto">
-        <h2 className="text-white font-bold text-lg mb-1">Strategy Simulator</h2>
-        <p className="text-gray-500 text-xs mb-5">Configure race parameters</p>
+      <aside className="w-72 shrink-0 border-r border-[#1e2538] bg-[#0d1120] p-5 overflow-y-auto">
+        <h2 className="text-white font-bold text-lg mb-0.5">Strategy Simulator</h2>
+        <p className="text-[#4b5563] text-xs mb-5 font-mono">Configure race parameters</p>
 
         {/* Session selector */}
         <div className="space-y-3 mb-5 pb-5 border-b border-[#2a3040]">
@@ -438,11 +452,11 @@ export default function StrategyClient() {
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 p-6 overflow-auto">
-        <div className="mb-6">
-          <h1 className="text-white font-bold text-2xl">Race Strategy Comparison</h1>
-          <p className="text-gray-400 text-sm mt-1">
-            <span className="font-mono">{totalLaps}</span> laps · Base <span className="font-mono">{formatLapTime(baseLapTime)}</span> · Pit loss <span className="font-mono">{pitLoss}s</span>
+      <div className="flex-1 px-6 py-5 overflow-auto">
+        <div className="mb-5 border-b border-[#1e2538] pb-4">
+          <h1 className="text-white font-bold text-xl">Race Strategy Comparison</h1>
+          <p className="text-[#6b7280] text-sm mt-1 font-mono">
+            {totalLaps} laps · Base {formatLapTime(baseLapTime)} · Pit loss {pitLoss}s
           </p>
         </div>
 
@@ -467,40 +481,95 @@ export default function StrategyClient() {
           </div>
         )}
 
-        {/* Chart */}
-        <div className="bg-[#1a1f2e] border border-[#2a3040] rounded-xl p-6 mb-6">
-          <h3 className="text-white font-semibold mb-4">Cumulative Race Time by Strategy</h3>
-          <ResponsiveContainer width="100%" height={380}>
-            <LineChart data={chartData} margin={{ left: 20, right: 20, top: 10, bottom: 10 }}>
+        {/* Delta chart — Gap to best strategy (most useful) */}
+        <div className="bg-[#1a1f2e] border border-[#2a3040] rounded-xl p-6 mb-4">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="text-white font-semibold">Gap to Best Strategy (Δ seconds)</h3>
+              <p className="text-[#6b7280] text-xs mt-0.5">Lower = better. The optimal strategy stays at 0.</p>
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={280}>
+            <LineChart data={deltaData} margin={{ top: 10, right: 30, left: 10, bottom: 30 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#2a3040" />
               <XAxis
                 dataKey="lap"
                 tick={{ fill: '#6b7280', fontSize: 11 }}
-                label={{ value: 'Lap', position: 'insideBottom', offset: -2, fill: '#6b7280', fontSize: 11 }}
+                label={{ value: 'Lap', position: 'insideBottom', offset: -15, fill: '#6b7280', fontSize: 11 }}
               />
               <YAxis
-                tickFormatter={(v) => formatRaceTime(v)}
+                tickFormatter={(v) => `+${v.toFixed(1)}s`}
                 tick={{ fill: '#6b7280', fontSize: 10, fontFamily: 'monospace' }}
-                width={80}
-                domain={['auto', 'auto']}
+                width={55}
+                domain={[0, 'auto']}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                formatter={(v: any, key: any) => {
+                  const strat = strategies.find((s: Strategy) => s.id === String(key));
+                  return [`+${Number(v ?? 0).toFixed(3)}s`, strat?.name ?? String(key)];
+                }}
+                labelFormatter={(l) => `Lap ${l}`}
+                contentStyle={{ background: '#1a1f2e', border: '1px solid #2a3040', borderRadius: 8, fontSize: 12 }}
+                labelStyle={{ color: '#fff', fontWeight: 'bold', marginBottom: 4 }}
+              />
               <Legend
+                wrapperStyle={{ paddingTop: 16 }}
                 formatter={(value) => {
                   const strat = strategies.find(s => s.id === value);
-                  return <span style={{ color: '#e5e7eb', fontSize: 12 }}>{strat?.name ?? value}</span>;
+                  return <span style={{ color: '#e5e7eb', fontSize: 11 }}>{strat?.name ?? value}</span>;
                 }}
               />
-              {/* Pit stop reference lines from real data */}
+              {/* Pit stop reference lines */}
               {selectedDriverStints.length > 1 && selectedDriverStints.slice(1).map((s, i) => (
                 <ReferenceLine
                   key={i}
                   x={s.lap_start}
                   stroke="#FFD700"
                   strokeDasharray="4 3"
-                  label={{ value: `PIT`, position: 'top', fill: '#FFD700', fontSize: 9 }}
+                  label={{ value: 'PIT', position: 'top', fill: '#FFD700', fontSize: 9 }}
                 />
               ))}
+              {strategies.map(strat => (
+                <Line
+                  key={strat.id}
+                  type="monotone"
+                  dataKey={strat.id}
+                  stroke={strat.color}
+                  strokeWidth={strat.id === bestStrategy?.id ? 3 : 1.5}
+                  dot={false}
+                  strokeDasharray={strat.id === bestStrategy?.id ? undefined : '4 2'}
+                />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Cumulative chart */}
+        <div className="bg-[#1a1f2e] border border-[#2a3040] rounded-xl p-6 mb-6">
+          <h3 className="text-white font-semibold mb-4">Cumulative Race Time</h3>
+          <ResponsiveContainer width="100%" height={280}>
+            <LineChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 30 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#2a3040" />
+              <XAxis
+                dataKey="lap"
+                tick={{ fill: '#6b7280', fontSize: 11 }}
+                label={{ value: 'Lap', position: 'insideBottom', offset: -15, fill: '#6b7280', fontSize: 11 }}
+              />
+              <YAxis
+                tickFormatter={(v) => formatRaceTime(v)}
+                tick={{ fill: '#6b7280', fontSize: 10, fontFamily: 'monospace' }}
+                width={80}
+                domain={[(dataMin: number) => Math.floor(dataMin * 0.9998), (dataMax: number) => Math.ceil(dataMax * 1.0002)]}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Legend
+                wrapperStyle={{ paddingTop: 16 }}
+                formatter={(value) => {
+                  const strat = strategies.find(s => s.id === value);
+                  return <span style={{ color: '#e5e7eb', fontSize: 12 }}>{strat?.name ?? value}</span>;
+                }}
+              />
               {strategies.map(strat => (
                 <Line
                   key={strat.id}

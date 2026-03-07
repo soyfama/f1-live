@@ -5,5 +5,9 @@ export const metadata = {
 };
 
 export default function StrategyPage() {
-  return <StrategyClient />;
+  return (
+    <div className="max-w-screen-2xl mx-auto">
+      <StrategyClient />
+    </div>
+  );
 }

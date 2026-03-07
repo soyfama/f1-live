@@ -140,17 +140,46 @@ function LapCell({ time, best }: { time: number | null; best: number | null }) {
 
 // ─── Circuit SVG ──────────────────────────────────────────────────────────────
 function CircuitSVG({ circuit }: { circuit: string }) {
+  // Generic F1-style track: main straight → complex → chicane → hairpin → sweeping return
+  const trackPath = [
+    "M 55,40",           // S/F line
+    "L 290,40",          // Main straight
+    "C 330,40 345,55 345,90",   // Turn 1 entry
+    "L 345,120",         // Short right straight
+    "C 345,138 332,145 320,140", // Chicane apex
+    "C 308,135 302,148 305,165", // Chicane exit
+    "L 308,205",         // Right sector
+    "C 310,235 292,258 265,262", // Right hairpin top
+    "C 238,266 215,258 205,240", // Hairpin apex
+    "C 195,222 198,205 210,195", // Hairpin exit
+    "L 225,170",         // Post-hairpin straight
+    "C 238,155 235,138 222,130", // Kink left
+    "L 195,125",         // Short straight
+    "C 178,120 168,108 170,90",  // Sweeping left
+    "L 172,65",          // Left-side straight
+    "C 174,50 165,40 150,40",    // Final corner
+    "L 55,40",           // Back to S/F
+  ].join(" ");
+
   return (
-    <div className="relative w-full aspect-[4/3] flex items-center justify-center">
-      <svg viewBox="0 0 200 150" className="w-full h-full">
-        <path d="M 30,75 Q 30,25 70,20 L 130,20 Q 170,25 170,75 Q 170,125 130,130 L 70,130 Q 30,125 30,75 Z"
-          fill="none" stroke="#1e2538" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M 30,75 Q 30,25 70,20 L 130,20 Q 170,25 170,75 Q 170,125 130,130 L 70,130 Q 30,125 30,75 Z"
-          fill="none" stroke="#3671C6" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" opacity="0.7" />
-        <line x1="30" y1="65" x2="30" y2="85" stroke="#E10600" strokeWidth="3" />
-        <path d="M 30,70 L 50,70" stroke="#00FF00" strokeWidth="2" opacity="0.8" strokeDasharray="3 2" />
+    <div className="relative w-full flex flex-col items-center justify-center gap-1">
+      <svg viewBox="0 0 400 300" className="w-full h-36">
+        {/* Track shadow / outer width */}
+        <path d={trackPath} fill="none" stroke="#1e2538" strokeWidth="14" strokeLinecap="round" strokeLinejoin="round" />
+        {/* Track surface */}
+        <path d={trackPath} fill="none" stroke="#2a3248" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />
+        {/* Track edge highlight */}
+        <path d={trackPath} fill="none" stroke="#374151" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" />
+        {/* Racing line */}
+        <path d={trackPath} fill="none" stroke="#e10600" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeOpacity="0.85" />
+        {/* Start/Finish line */}
+        <line x1="55" y1="33" x2="55" y2="47" stroke="#ffffff" strokeWidth="4" strokeLinecap="round" />
+        <line x1="60" y1="33" x2="60" y2="47" stroke="#e10600" strokeWidth="2" strokeLinecap="round" />
+        {/* Kerb dots at key corners */}
+        <circle cx="345" cy="90" r="3" fill="#e10600" opacity="0.5" />
+        <circle cx="235" cy="262" r="3" fill="#e10600" opacity="0.5" />
       </svg>
-      <span className="absolute bottom-1 left-0 right-0 text-center text-[10px] text-[#374151] truncate px-1">{circuit}</span>
+      <span className="text-[10px] text-[#4b5563] truncate max-w-full px-1 text-center">{circuit}</span>
     </div>
   );
 }
@@ -236,10 +265,21 @@ export default function LiveTimingClient() {
   const prevRef = useRef<Map<number, DriverTiming>>(new Map());
   const esRef = useRef<EventSource | null>(null);
 
+  const [connectionTimeout, setConnectionTimeout] = useState(false);
   const [sessionBests, setSessionBests] = useState<{ s1: number | null; s2: number | null; s3: number | null; lap: number | null }>({
     s1: null, s2: null, s3: null, lap: null,
   });
   const [driverBests, setDriverBests] = useState<Map<number, { s1: number | null; s2: number | null; s3: number | null }>>(new Map());
+
+  // Connection timeout — prevent infinite spinner (25 seconds)
+  useEffect(() => {
+    if (data?.session || !connected) {
+      setConnectionTimeout(false);
+      return;
+    }
+    const t = setTimeout(() => setConnectionTimeout(true), 25000);
+    return () => clearTimeout(t);
+  }, [data?.session, connected]);
 
   // Auto-load fallback when no live session and no manual override
   useEffect(() => {
@@ -364,13 +404,34 @@ export default function LiveTimingClient() {
         {noLiveSession ? (
           <div className="bg-yellow-500/10 border border-yellow-500/40 rounded-xl p-4 text-yellow-300 text-sm flex items-center gap-2">
             <span>⚠️</span>
-            <span>No live session active. Select a past session above or wait for the next session to start.</span>
+            <span>No live F1 session active. Loading latest available session data...</span>
+          </div>
+        ) : null}
+
+        {connectionTimeout ? (
+          <div className="bg-[#1a1f2e] border border-[#2a3040] rounded-xl p-10 text-center">
+            <p className="text-4xl mb-3">📡</p>
+            <p className="text-white font-semibold mb-1">No active F1 session found</p>
+            <p className="text-gray-500 text-sm mb-4">There is no live session right now. Select a past session above to explore historical data.</p>
+            <button
+              onClick={() => { setConnectionTimeout(false); connect(manualSessionKey); }}
+              className="bg-[#e10600] hover:bg-[#c00500] text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors"
+            >
+              Retry connection
+            </button>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-32 text-gray-500">
+          <div className="flex flex-col items-center justify-center py-24 text-gray-500">
             <div className="w-8 h-8 border-2 border-[#E10600] border-t-transparent rounded-full animate-spin mb-4" />
-            <p className="text-sm">Connecting to live timing...</p>
-            <p className="text-xs mt-1 text-[#374151]">OpenF1 API · Latest session</p>
+            <p className="text-sm">
+              {noLiveSession ? 'Loading last session data...' : 'Connecting to live timing...'}
+            </p>
+            <p className="text-xs mt-1 text-[#374151]">OpenF1 API · {noLiveSession ? 'Historical' : 'Live'} session</p>
+            {noLiveSession && (
+              <p className="text-xs mt-3 text-[#374151]">
+                Or select a session manually above
+              </p>
+            )}
           </div>
         )}
       </div>
