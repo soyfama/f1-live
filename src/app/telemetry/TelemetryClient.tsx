@@ -147,7 +147,7 @@ export default function TelemetryClient() {
     if (!active || !payload?.length) return null;
     return (
       <div className="bg-[#1a1f2e] border border-[#2a3040] rounded-lg p-2 text-xs">
-        <p className="text-gray-500 mb-1">Sample {label}</p>
+        <p className="text-gray-400 mb-1">Sample {label}</p>
         {payload.map((p, i) => (
           <div key={i} className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
@@ -159,24 +159,27 @@ export default function TelemetryClient() {
   };
 
   return (
-    <div className="max-w-screen-2xl mx-auto px-4 py-6">
+    <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {/* Controls - Responsive */}
       <div className="flex flex-wrap gap-4 mb-6">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
           <label className="text-gray-400 text-sm">Session:</label>
-          <input
-            type="text"
-            value={sessionInput}
-            onChange={e => setSessionInput(e.target.value)}
-            className="bg-[#1a1f2e] border border-[#2a3040] text-white rounded-lg px-3 py-2 text-sm w-28"
-          />
-          <button
-            onClick={() => setSessionKey(Number(sessionInput))}
-            className="bg-[#1a1f2e] border border-[#2a3040] text-white rounded-lg px-3 py-2 text-sm hover:bg-[#2a3040]"
-          >
-            Load
-          </button>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={sessionInput}
+              onChange={e => setSessionInput(e.target.value)}
+              className="bg-[#1a1f2e] border border-[#2a3040] text-white rounded-lg px-3 py-2 text-sm w-28"
+            />
+            <button
+              onClick={() => setSessionKey(Number(sessionInput))}
+              className="bg-[#1a1f2e] border border-[#2a3040] text-white rounded-lg px-3 py-2 text-sm hover:bg-[#2a3040]"
+            >
+              Load
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
           <label className="text-gray-400 text-sm">Lap:</label>
           <input
             type="number"
@@ -189,7 +192,7 @@ export default function TelemetryClient() {
         <button
           onClick={loadTelemetry}
           disabled={loading || !selectedDrivers.length}
-          className="bg-[#e10600] hover:bg-[#c00500] disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          className="bg-[#e10600] hover:bg-[#c00500] disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors w-full sm:w-auto"
         >
           {loading ? 'Loading...' : 'Compare'}
         </button>
@@ -226,13 +229,14 @@ export default function TelemetryClient() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-32">
-          <div className="w-8 h-8 border-2 border-[#e10600] border-t-transparent rounded-full animate-spin" />
+        <div className="flex flex-col items-center justify-center min-h-[400px]">
+          <div className="w-8 h-8 border-2 border-[#e10600] border-t-transparent rounded-full animate-spin mb-4" />
+          <p className="text-gray-400 text-sm">Loading telemetry data...</p>
         </div>
       ) : chartData.length > 0 ? (
         <div className="space-y-4">
           {/* Speed */}
-          <div className="bg-[#1a1f2e] border border-[#2a3040] rounded-xl p-6">
+          <div className="bg-[#1a1f2e] border border-[#2a3040] rounded-xl p-4 sm:p-6">
             <h3 className="text-white font-semibold mb-4">Speed (km/h)</h3>
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={chartData} margin={{ left: 10, right: 10 }}>
@@ -249,7 +253,7 @@ export default function TelemetryClient() {
           </div>
 
           {/* Throttle */}
-          <div className="bg-[#1a1f2e] border border-[#2a3040] rounded-xl p-6">
+          <div className="bg-[#1a1f2e] border border-[#2a3040] rounded-xl p-4 sm:p-6">
             <h3 className="text-white font-semibold mb-4">Throttle (%)</h3>
             <ResponsiveContainer width="100%" height={160}>
               <LineChart data={chartData} margin={{ left: 10, right: 10 }}>
@@ -265,7 +269,7 @@ export default function TelemetryClient() {
           </div>
 
           {/* Brake */}
-          <div className="bg-[#1a1f2e] border border-[#2a3040] rounded-xl p-6">
+          <div className="bg-[#1a1f2e] border border-[#2a3040] rounded-xl p-4 sm:p-6">
             <h3 className="text-white font-semibold mb-4">Brake</h3>
             <ResponsiveContainer width="100%" height={120}>
               <LineChart data={chartData} margin={{ left: 10, right: 10 }}>
@@ -282,9 +286,9 @@ export default function TelemetryClient() {
 
           {/* Delta time */}
           {deltaData.length > 0 && telemetryData.length >= 2 && (
-            <div className="bg-[#1a1f2e] border border-[#2a3040] rounded-xl p-6">
+            <div className="bg-[#1a1f2e] border border-[#2a3040] rounded-xl p-4 sm:p-6">
               <h3 className="text-white font-semibold mb-1">Delta Time</h3>
-              <p className="text-gray-500 text-xs mb-4">
+              <p className="text-gray-400 text-xs mb-4">
                 {telemetryData[0].driver.name_acronym} vs {telemetryData[1].driver.name_acronym}
               </p>
               <ResponsiveContainer width="100%" height={160}>
@@ -301,10 +305,10 @@ export default function TelemetryClient() {
           )}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-32 text-gray-400">
+        <div className="flex flex-col items-center justify-center min-h-[400px] text-gray-400">
           <p className="text-4xl mb-4">📡</p>
           <p className="font-medium">Select drivers and click Compare</p>
-          <p className="text-sm text-gray-600 mt-1">Telemetry data from OpenF1 /car_data</p>
+          <p className="text-sm text-gray-500 mt-1">Telemetry data from OpenF1 /car_data</p>
         </div>
       )}
     </div>
