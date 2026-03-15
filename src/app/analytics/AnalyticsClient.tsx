@@ -166,7 +166,7 @@ export default function AnalyticsClient() {
   const teamChartData = analyticsData.teams;
 
   return (
-    <>
+    <div className="flex flex-col lg:flex-row w-full min-h-[calc(100vh-3.5rem)]">
       {/* Sidebar - Premium styled */}
       <aside className="w-[220px] shrink-0 border-r border-[rgba(255,255,255,0.07)] bg-[#13131F] py-4 px-3 hidden lg:block">
         <p className="text-[#4A4A6A] text-[10px] uppercase tracking-widest px-3 mb-3 font-bold">Analysis</p>
@@ -457,6 +457,6 @@ export default function AnalyticsClient() {
           </>
         )}
       </div>
-    </>
+    </div>
   );
 }

@@ -175,8 +175,8 @@ export default function StrategyClient() {
   };
 
   return (
-    <>
-      <aside className="w-[220px] shrink-0 border-r border-[rgba(255,255,255,0.07)] bg-[#13131F] py-4 px-3 overflow-y-auto hidden lg:block">
+    <div className="flex flex-col lg:flex-row w-full min-h-[calc(100vh-3.5rem)]">
+      <aside className="w-full lg:w-[220px] shrink-0 border-b lg:border-b-0 lg:border-r border-[rgba(255,255,255,0.07)] bg-[#13131F] py-4 px-3 overflow-y-auto">
         <h2 className="text-[#EEEEF5] font-bold text-base mb-0.5 px-3">Strategy Simulator</h2>
         <p className="text-[#7878A0] text-xs mb-5 px-3 font-mono">Configure parameters</p>
         <div className="space-y-3 mb-5 pb-5 border-b border-[rgba(255,255,255,0.07)] px-3">
@@ -348,6 +348,6 @@ export default function StrategyClient() {
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

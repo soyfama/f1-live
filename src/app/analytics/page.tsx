@@ -5,9 +5,5 @@ export const metadata = {
 };
 
 export default function AnalyticsPage() {
-  return (
-    <div className="min-h-[calc(100vh-3.5rem)] flex">
-      <AnalyticsClient />
-    </div>
-  );
+  return <AnalyticsClient />;
 }
