@@ -12,7 +12,7 @@ interface SessionOption { sessionKey: number; label: string; }
 interface DriverOption { driverNumber: number; acronym: string; fullName: string; team: string; }
 
 const TYRE_COLORS_MAP = { SOFT: '#FF3333', MEDIUM: '#FFF200', HARD: '#FFFFFF' };
-const STRATEGY_COLORS = ['#3671C6', '#FF8000', '#16a34a', '#E10600', '#BF00FF', '#06b6d4'];
+const STRATEGY_COLORS = ['#3671C6', '#FF8000', '#16a34a', '#E8002D', '#BF00FF', '#06b6d4'];
 
 function calcLapTime(baseLap: number, lapInStint: number, compound: 'SOFT' | 'MEDIUM' | 'HARD', degradation: Record<string, number>): number {
   const deg = degradation[compound] ?? 0.1;
@@ -161,13 +161,13 @@ export default function StrategyClient() {
   const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ dataKey: string; value: number; color: string }>; label?: number }) => {
     if (!active || !payload?.length) return null;
     return (
-      <div className="bg-[#111] border border-[#333] rounded-lg p-3 text-xs shadow-xl">
-        <p className="text-white font-bold mb-2">Lap {label}</p>
+      <div className="bg-[#13131F] border border-[rgba(255,255,255,0.07)] rounded-lg p-3 text-xs shadow-xl">
+        <p className="text-[#EEEEF5] font-bold mb-2">Lap {label}</p>
         {payload.map((p) => { const strat = strategies.find((s: Strategy) => s.id === p.dataKey); return (
           <div key={p.dataKey} className="flex items-center gap-2 mb-1">
             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
-            <span className="text-gray-400">{strat?.name}:</span>
-            <span className="text-white font-mono">{formatRaceTime(p.value)}</span>
+            <span className="text-[#7878A0]">{strat?.name}:</span>
+            <span className="text-[#EEEEF5] font-mono">{formatRaceTime(p.value)}</span>
           </div>
         ); })}
       </div>
@@ -175,137 +175,130 @@ export default function StrategyClient() {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row min-h-[calc(100vh-3.5rem)]">
-      {/* Sidebar - Responsive */}
-      <aside className="w-full lg:w-72 shrink-0 border-b lg:border-b-0 lg:border-r border-[#1a1a1a] bg-[#0a0a0a] p-4 lg:p-5 overflow-y-auto">
-        <h2 className="text-white font-bold text-lg mb-0.5">Strategy Simulator</h2>
-        <p className="text-gray-400 text-xs mb-5 font-mono">Configure race parameters</p>
-
-        <div className="space-y-3 mb-5 pb-5 border-b border-[#1a1a1a]">
-          <label className="text-gray-400 text-xs uppercase tracking-wider block">Reference Session</label>
-          <select value={year} onChange={e => setYear(Number(e.target.value))} className="w-full bg-[#111] border border-[#222] text-white rounded-lg px-3 py-2 text-sm">
+    <>
+      <aside className="w-[220px] shrink-0 border-r border-[rgba(255,255,255,0.07)] bg-[#13131F] py-4 px-3 overflow-y-auto hidden lg:block">
+        <h2 className="text-[#EEEEF5] font-bold text-base mb-0.5 px-3">Strategy Simulator</h2>
+        <p className="text-[#7878A0] text-xs mb-5 px-3 font-mono">Configure parameters</p>
+        <div className="space-y-3 mb-5 pb-5 border-b border-[rgba(255,255,255,0.07)] px-3">
+          <label className="text-[#4A4A6A] text-[10px] uppercase tracking-widest font-bold block">Reference Session</label>
+          <select value={year} onChange={e => setYear(Number(e.target.value))} className="w-full bg-[#0D0D14] border border-[rgba(255,255,255,0.07)] text-[#EEEEF5] rounded-lg px-3 py-2 text-sm">
             {[2026, 2025, 2024, 2023].map(y => <option key={y} value={y}>{y}</option>)}
           </select>
-          <select value={selectedMeeting ?? ''} onChange={e => setSelectedMeeting(Number(e.target.value))} className="w-full bg-[#111] border border-[#222] text-white rounded-lg px-3 py-2 text-sm">
+          <select value={selectedMeeting ?? ''} onChange={e => setSelectedMeeting(Number(e.target.value))} className="w-full bg-[#0D0D14] border border-[rgba(255,255,255,0.07)] text-[#EEEEF5] rounded-lg px-3 py-2 text-sm">
             {meetings.map(m => <option key={m.meetingKey} value={m.meetingKey}>{m.label}</option>)}
           </select>
-          <select value={selectedSession ?? ''} onChange={e => { const v = Number(e.target.value); setSelectedSession(v); const s = sessions.find(s => s.sessionKey === v); if (s) setDriverLabel(s.label); }} className="w-full bg-[#111] border border-[#222] text-white rounded-lg px-3 py-2 text-sm">
+          <select value={selectedSession ?? ''} onChange={e => { const v = Number(e.target.value); setSelectedSession(v); const s = sessions.find(s => s.sessionKey === v); if (s) setDriverLabel(s.label); }} className="w-full bg-[#0D0D14] border border-[rgba(255,255,255,0.07)] text-[#EEEEF5] rounded-lg px-3 py-2 text-sm">
             {sessions.map(s => <option key={s.sessionKey} value={s.sessionKey}>{s.label}</option>)}
           </select>
-          <select value={selectedDriver ?? ''} onChange={e => { const v = Number(e.target.value); setSelectedDriver(v); const d = drivers.find(d => d.driverNumber === v); if (d) setDriverLabel(d.acronym); }} className="w-full bg-[#111] border border-[#222] text-white rounded-lg px-3 py-2 text-sm">
+          <select value={selectedDriver ?? ''} onChange={e => { const v = Number(e.target.value); setSelectedDriver(v); const d = drivers.find(d => d.driverNumber === v); if (d) setDriverLabel(d.acronym); }} className="w-full bg-[#0D0D14] border border-[rgba(255,255,255,0.07)] text-[#EEEEF5] rounded-lg px-3 py-2 text-sm">
             {drivers.map(d => <option key={d.driverNumber} value={d.driverNumber}>{d.acronym} — {d.team?.replace(' F1 Team', '')}</option>)}
           </select>
         </div>
-
-        <div className="space-y-5">
+        <div className="space-y-5 px-3">
           <div>
-            <label className="text-gray-400 text-xs uppercase tracking-wider block mb-2">Circuit Laps</label>
-            <input type="number" value={totalLaps} onChange={e => setTotalLaps(Math.max(1, Number(e.target.value)))} className="w-full bg-[#111] border border-[#222] text-white rounded-lg px-3 py-2 text-sm font-mono" />
+            <label className="text-[#4A4A6A] text-[10px] uppercase tracking-widest font-bold block mb-2">Circuit Laps</label>
+            <input type="number" value={totalLaps} onChange={e => setTotalLaps(Math.max(1, Number(e.target.value)))} className="w-full bg-[#0D0D14] border border-[rgba(255,255,255,0.07)] text-[#EEEEF5] rounded-lg px-3 py-2 text-sm font-mono" />
           </div>
-
           <div>
-            <label className="text-gray-400 text-xs uppercase tracking-wider block mb-2">Base Lap Time: <span className="font-mono text-white">{baseLapTime.toFixed(1)}s</span></label>
-            <input type="range" min="70" max="150" step="0.1" value={baseLapTime} onChange={e => setBaseLapTime(Number(e.target.value))} className="w-full accent-[#E10600]" />
-            <div className="flex justify-between text-xs text-gray-500 mt-1"><span className="font-mono">70s</span><span className="font-mono text-[#E10600]">{formatLapTime(baseLapTime)}</span><span className="font-mono">150s</span></div>
+            <label className="text-[#4A4A6A] text-[10px] uppercase tracking-widest font-bold block mb-2">Base Lap: <span className="font-mono text-[#EEEEF5]">{baseLapTime.toFixed(1)}s</span></label>
+            <input type="range" min="70" max="150" step="0.1" value={baseLapTime} onChange={e => setBaseLapTime(Number(e.target.value))} className="w-full accent-[#E8002D]" />
+            <div className="flex justify-between text-[10px] text-[#4A4A6A] mt-1"><span className="font-mono">70s</span><span className="font-mono text-[#E8002D]">{formatLapTime(baseLapTime)}</span><span className="font-mono">150s</span></div>
           </div>
-
           <div>
-            <label className="text-gray-400 text-xs uppercase tracking-wider block mb-2">Pit Stop Loss: <span className="font-mono text-white">{pitLoss}s</span></label>
-            <input type="range" min="15" max="35" step="0.5" value={pitLoss} onChange={e => setPitLoss(Number(e.target.value))} className="w-full accent-[#E10600]" />
-            <div className="flex justify-between text-xs text-gray-500 mt-1"><span className="font-mono">15s</span><span className="font-mono text-[#E10600]">{pitLoss}s</span><span className="font-mono">35s</span></div>
+            <label className="text-[#4A4A6A] text-[10px] uppercase tracking-widest font-bold block mb-2">Pit Loss: <span className="font-mono text-[#EEEEF5]">{pitLoss}s</span></label>
+            <input type="range" min="15" max="35" step="0.5" value={pitLoss} onChange={e => setPitLoss(Number(e.target.value))} className="w-full accent-[#E8002D]" />
+            <div className="flex justify-between text-[10px] text-[#4A4A6A] mt-1"><span className="font-mono">15s</span><span className="font-mono text-[#E8002D]">{pitLoss}s</span><span className="font-mono">35s</span></div>
           </div>
-
           <div>
-            <label className="text-gray-400 text-xs uppercase tracking-wider block mb-2">Tyre Degradation (s/lap)</label>
-            <div className="space-y-3">
+            <label className="text-[#4A4A6A] text-[10px] uppercase tracking-widest font-bold block mb-3">Tyre Degradation (s/lap)</label>
+            <div className="space-y-4">
               {(['SOFT', 'MEDIUM', 'HARD'] as const).map(compound => (
                 <div key={compound}>
-                  <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-2">
                       <span className="w-3 h-3 rounded-full" style={{ backgroundColor: TYRE_COLORS_MAP[compound] }} />
-                      <span className="text-gray-300 text-xs">{compound}</span>
+                      <span className="text-[#7878A0] text-xs">{compound}</span>
                     </div>
-                    <span className="text-gray-400 text-xs font-mono">{degradation[compound].toFixed(2)}s</span>
+                    <span className="text-[#EEEEF5] text-xs font-mono">{degradation[compound].toFixed(2)}s</span>
                   </div>
-                  <input type="range" min="0" max="0.5" step="0.01" value={degradation[compound]} onChange={e => setDegradation(prev => ({ ...prev, [compound]: Number(e.target.value) }))} className="w-full accent-[#E10600]" />
+                  <input type="range" min="0" max="0.5" step="0.01" value={degradation[compound]} onChange={e => setDegradation(prev => ({ ...prev, [compound]: Number(e.target.value) }))} className="w-full accent-[#E8002D]" />
                 </div>
               ))}
             </div>
           </div>
-
-          <div>
-            <label className="text-gray-400 text-xs uppercase tracking-wider block mb-2">{loadingStints ? 'Loading stints...' : selectedDriverStints.length > 0 ? `Real Stints — ${driverLabel}` : 'Real Stints'}</label>
-            {loadingStints ? (
-              <div className="flex items-center gap-2 text-xs text-gray-400"><div className="w-3 h-3 border border-[#E10600] border-t-transparent rounded-full animate-spin" />Fetching...</div>
-            ) : selectedDriverStints.length > 0 ? (
-              <div className="space-y-1">
-                {selectedDriverStints.map(s => (
-                  <div key={s.stint_number} className="flex items-center gap-2 text-xs bg-[#111] rounded px-2 py-1.5 border border-[#1a1a1a]">
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: TYRE_COLORS_MAP[s.compound?.toUpperCase() as keyof typeof TYRE_COLORS_MAP] ?? '#888' }} />
-                    <span className="text-gray-300">{s.compound}</span>
-                    <span className="text-gray-400 ml-auto font-mono">L{s.lap_start}→L{s.lap_end ?? '?'}</span>
-                  </div>
-                ))}
-              </div>
-            ) : <p className="text-gray-400 text-xs italic">No stints found for this driver/session.</p>}
-          </div>
         </div>
       </aside>
 
+      <div className="lg:hidden w-full border-b border-[rgba(255,255,255,0.07)] bg-[#13131F] py-4 px-4">
+        <details className="group">
+          <summary className="flex items-center justify-between cursor-pointer list-none">
+            <div>
+              <h2 className="text-[#EEEEF5] font-bold text-base">Strategy Simulator</h2>
+              <p className="text-[#7878A0] text-xs font-mono">{totalLaps} laps</p>
+            </div>
+            <span className="text-[#7878A0] group-open:rotate-180 transition-transform">▼</span>
+          </summary>
+          <div className="mt-4 space-y-4">
+            <select value={year} onChange={e => setYear(Number(e.target.value))} className="w-full bg-[#0D0D14] border border-[rgba(255,255,255,0.07)] text-[#EEEEF5] rounded-lg px-3 py-2 text-sm">
+              {[2026, 2025, 2024, 2023].map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+            <select value={selectedMeeting ?? ''} onChange={e => setSelectedMeeting(Number(e.target.value))} className="w-full bg-[#0D0D14] border border-[rgba(255,255,255,0.07)] text-[#EEEEF5] rounded-lg px-3 py-2 text-sm">
+              {meetings.map(m => <option key={m.meetingKey} value={m.meetingKey}>{m.label}</option>)}
+            </select>
+            <select value={selectedSession ?? ''} onChange={e => setSelectedSession(Number(e.target.value))} className="w-full bg-[#0D0D14] border border-[rgba(255,255,255,0.07)] text-[#EEEEF5] rounded-lg px-3 py-2 text-sm">
+              {sessions.map(s => <option key={s.sessionKey} value={s.sessionKey}>{s.label}</option>)}
+            </select>
+          </div>
+        </details>
+      </div>
+
       <div className="flex-1 px-4 sm:px-6 lg:px-8 py-5 overflow-auto">
-        <div className="mb-5 border-b border-[#1a1a1a] pb-4">
-          <h1 className="text-white font-bold text-xl">Race Strategy Comparison</h1>
-          <p className="text-gray-400 text-sm mt-1 font-mono">{totalLaps} laps • Base {formatLapTime(baseLapTime)} • Pit loss {pitLoss}s</p>
+        <div className="mb-6 border-b border-[rgba(255,255,255,0.07)] pb-4">
+          <h1 className="text-[#EEEEF5] font-bold text-xl">Race Strategy Comparison</h1>
+          <p className="text-[#7878A0] text-sm mt-1 font-mono">{totalLaps} laps • Base {formatLapTime(baseLapTime)}</p>
         </div>
 
         {bestStrategy && (
-          <div className="bg-gradient-to-r from-[#E10600]/20 to-transparent border border-[#E10600]/30 rounded-xl p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-            <span className="text-3xl">🏆</span>
+          <div className="f1-card border-[rgba(232,0,45,0.3)] bg-gradient-to-r from-[rgba(232,0,45,0.08)] to-transparent mb-6 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <div className="w-10 h-10 rounded-full bg-[#E8002D] flex items-center justify-center shrink-0"><span className="text-white text-lg">🏆</span></div>
             <div className="flex-1">
-              <p className="text-white font-bold text-lg">Optimal Strategy: {bestStrategy.name}</p>
-              <p className="text-gray-400 text-sm font-mono">{formatRaceTime(bestStrategy.totalTime)} • {bestStrategy.pitCount} pit stop{bestStrategy.pitCount !== 1 ? 's' : ''}</p>
-              <p className="text-gray-400 text-xs mt-1">Recommended: Start on <span className="text-[#E10600] font-semibold">{bestStrategy.stints[0].compound}</span> for {bestStrategy.stints[0].laps} laps</p>
+              <p className="text-[#EEEEF5] font-bold text-lg">Optimal: {bestStrategy.name}</p>
+              <p className="text-[#7878A0] text-sm font-mono">{formatRaceTime(bestStrategy.totalTime)} • {bestStrategy.pitCount} stop{bestStrategy.pitCount !== 1 ? 's' : ''}</p>
             </div>
             <div className="flex gap-2 flex-wrap">
               {bestStrategy.stints.map((s, i) => (
-                <div key={i} className="flex flex-col items-center gap-1 bg-black/30 rounded-lg px-3 py-2">
+                <div key={i} className="flex flex-col items-center gap-1 bg-[#0D0D14] rounded-lg px-3 py-2 border border-[rgba(255,255,255,0.07)]">
                   <span className="w-4 h-4 rounded-full" style={{ backgroundColor: TYRE_COLORS_MAP[s.compound] }} />
-                  <span className="text-gray-300 text-xs font-mono">{s.laps}L</span>
+                  <span className="text-[#7878A0] text-xs font-mono">{s.laps}L</span>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        <div className="f1-card p-4 sm:p-6 mb-4">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-white font-semibold">Gap to Best Strategy (Δ seconds)</h3>
-              <p className="text-gray-400 text-xs mt-0.5">Lower = better. The optimal strategy stays at 0.</p>
-            </div>
-          </div>
+        <div className="chart-container mb-5">
+          <h3 className="text-[#EEEEF5] font-semibold mb-4">Gap to Best Strategy</h3>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={deltaData} margin={{ top: 10, right: 30, left: 10, bottom: 30 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
-              <XAxis dataKey="lap" tick={{ fill: '#666', fontSize: 11 }} label={{ value: 'Lap', position: 'insideBottom', offset: -15, fill: '#666', fontSize: 11 }} />
-              <YAxis tickFormatter={(v) => `+${v.toFixed(1)}s`} tick={{ fill: '#666', fontSize: 10, fontFamily: 'monospace' }} width={55} domain={[0, 'auto']} />
-              <Tooltip formatter={(v: any, key: any) => { const strat = strategies.find((s: Strategy) => s.id === String(key)); return [`+${Number(v ?? 0).toFixed(3)}s`, strat?.name ?? String(key)]; }} labelFormatter={(l) => `Lap ${l}`} contentStyle={{ background: '#111', border: '1px solid #333', borderRadius: 8, fontSize: 12 }} labelStyle={{ color: '#fff', fontWeight: 'bold', marginBottom: 4 }} />
-              <Legend wrapperStyle={{ paddingTop: 16 }} formatter={(value) => { const strat = strategies.find(s => s.id === value); return <span style={{ color: '#ccc', fontSize: 11 }}>{strat?.name ?? value}</span>; }} />
-              {selectedDriverStints.length > 1 && selectedDriverStints.slice(1).map((s, i) => <ReferenceLine key={i} x={s.lap_start} stroke="#E10600" strokeDasharray="4 3" label={{ value: 'PIT', position: 'top', fill: '#E10600', fontSize: 9 }} />)}
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
+              <XAxis dataKey="lap" tick={{ fill: '#4A4A6A', fontSize: 11 }} />
+              <YAxis tickFormatter={(v) => `+${v.toFixed(1)}s`} tick={{ fill: '#4A4A6A', fontSize: 10, fontFamily: 'monospace' }} width={55} domain={[0, 'auto']} />
+              <Tooltip contentStyle={{ background: '#13131F', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, fontSize: 12 }} />
+              <Legend wrapperStyle={{ paddingTop: 16 }} formatter={(value) => { const strat = strategies.find(s => s.id === value); return <span style={{ color: '#7878A0', fontSize: 11 }}>{strat?.name ?? value}</span>; }} />
               {strategies.map(strat => <Line key={strat.id} type="monotone" dataKey={strat.id} stroke={strat.color} strokeWidth={strat.id === bestStrategy?.id ? 3 : 1.5} dot={false} strokeDasharray={strat.id === bestStrategy?.id ? undefined : '4 2'} />)}
             </LineChart>
           </ResponsiveContainer>
         </div>
 
-        <div className="f1-card p-4 sm:p-6 mb-6">
-          <h3 className="text-white font-semibold mb-4">Cumulative Race Time</h3>
+        <div className="chart-container mb-6">
+          <h3 className="text-[#EEEEF5] font-semibold mb-4">Cumulative Race Time</h3>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={chartData} margin={{ top: 10, right: 30, left: 10, bottom: 30 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1a1a1a" />
-              <XAxis dataKey="lap" tick={{ fill: '#666', fontSize: 11 }} label={{ value: 'Lap', position: 'insideBottom', offset: -15, fill: '#666', fontSize: 11 }} />
-              <YAxis tickFormatter={(v) => formatRaceTime(v)} tick={{ fill: '#666', fontSize: 10, fontFamily: 'monospace' }} width={80} domain={[(dataMin: number) => Math.floor(dataMin * 0.9998), (dataMax: number) => Math.ceil(dataMax * 1.0002)]} />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.07)" />
+              <XAxis dataKey="lap" tick={{ fill: '#4A4A6A', fontSize: 11 }} />
+              <YAxis tickFormatter={(v) => formatRaceTime(v)} tick={{ fill: '#4A4A6A', fontSize: 10, fontFamily: 'monospace' }} width={80} />
               <Tooltip content={<CustomTooltip />} />
-              <Legend wrapperStyle={{ paddingTop: 16 }} formatter={(value) => { const strat = strategies.find(s => s.id === value); return <span style={{ color: '#ccc', fontSize: 12 }}>{strat?.name ?? value}</span>; }} />
+              <Legend wrapperStyle={{ paddingTop: 16 }} formatter={(value) => { const strat = strategies.find(s => s.id === value); return <span style={{ color: '#7878A0', fontSize: 12 }}>{strat?.name ?? value}</span>; }} />
               {strategies.map(strat => <Line key={strat.id} type="monotone" dataKey={strat.id} stroke={strat.color} strokeWidth={strat.id === bestStrategy?.id ? 3 : 1.5} dot={false} strokeDasharray={strat.id === bestStrategy?.id ? undefined : '4 2'} />)}
             </LineChart>
           </ResponsiveContainer>
@@ -313,40 +306,40 @@ export default function StrategyClient() {
 
         <div className="f1-card overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="premium-table">
               <thead>
-                <tr className="border-b border-[#1a1a1a] text-gray-400 text-xs uppercase tracking-wider">
-                  <th className="py-3 px-4 text-left">Strategy</th>
-                  <th className="py-3 px-4 text-center">Stops</th>
-                  <th className="py-3 px-4 text-left">Stints</th>
-                  <th className="py-3 px-4 text-right">Total Time</th>
-                  <th className="py-3 px-4 text-right">Delta</th>
+                <tr>
+                  <th>Strategy</th>
+                  <th className="text-center">Stops</th>
+                  <th>Stints</th>
+                  <th className="text-right">Total Time</th>
+                  <th className="text-right">Delta</th>
                 </tr>
               </thead>
               <tbody>
                 {[...strategies].sort((a, b) => a.totalTime - b.totalTime).map((strat, i) => {
                   const delta = strat.totalTime - (bestStrategy?.totalTime ?? 0);
                   return (
-                    <tr key={strat.id} className={`border-b border-[#1a1a1a]/50 hover:bg-white/[0.02] ${i === 0 ? 'bg-[#E10600]/5' : ''}`}>
-                      <td className="py-3 px-4">
+                    <tr key={strat.id} className={i === 0 ? 'bg-[rgba(232,0,45,0.05)]' : ''}>
+                      <td>
                         <div className="flex items-center gap-2">
                           <span className="w-3 h-3 rounded-full" style={{ backgroundColor: strat.color }} />
-                          <span className={`font-medium ${i === 0 ? 'text-[#E10600]' : 'text-white'}`}>{i === 0 && '🏆 '}{strat.name}</span>
+                          <span className={`font-medium ${i === 0 ? 'text-[#E8002D]' : 'text-[#EEEEF5]'}`}>{strat.name}</span>
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-center text-gray-400">{strat.pitCount}</td>
-                      <td className="py-3 px-4">
+                      <td className="text-center text-[#7878A0]">{strat.pitCount}</td>
+                      <td>
                         <div className="flex gap-2 flex-wrap">
                           {strat.stints.map((s, j) => (
-                            <span key={j} className="flex items-center gap-1 text-xs bg-black/30 rounded px-2 py-1">
+                            <span key={j} className="flex items-center gap-1 text-xs bg-[#0D0D14] rounded px-2 py-1 border border-[rgba(255,255,255,0.07)]">
                               <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: TYRE_COLORS_MAP[s.compound] }} />
-                              <span className="text-gray-300 font-mono">{s.laps}L</span>
+                              <span className="text-[#7878A0] font-mono">{s.laps}L</span>
                             </span>
                           ))}
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-right font-mono text-white">{formatRaceTime(strat.totalTime)}</td>
-                      <td className="py-3 px-4 text-right font-mono">{delta === 0 ? <span className="text-[#E10600]">—</span> : <span className="text-red-400">+{formatRaceTime(delta)}</span>}</td>
+                      <td className="text-right font-mono text-[#EEEEF5]">{formatRaceTime(strat.totalTime)}</td>
+                      <td className="text-right font-mono">{delta === 0 ? <span className="text-[#E8002D]">—</span> : <span className="text-[#FF3333]">+{formatRaceTime(delta)}</span>}</td>
                     </tr>
                   );
                 })}
@@ -355,6 +348,6 @@ export default function StrategyClient() {
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

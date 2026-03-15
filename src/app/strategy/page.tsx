@@ -6,7 +6,7 @@ export const metadata = {
 
 export default function StrategyPage() {
   return (
-    <div className="max-w-screen-2xl mx-auto">
+    <div className="min-h-[calc(100vh-3.5rem)] flex">
       <StrategyClient />
     </div>
   );

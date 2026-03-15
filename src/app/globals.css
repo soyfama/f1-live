@@ -1,159 +1,302 @@
 @import "tailwindcss";
 
-/* ─── PRO F1 DESIGN SYSTEM ───────────────────────────────────────────────── */
+/* ─── PREMIUM F1 DESIGN SYSTEM ───────────────────────────────────────────── */
 :root {
-  --bg-primary:   #0a0a0a;
-  --bg-secondary: #0d0d0d;
-  --bg-card:      #111111;
-  --bg-card-alt:  #151515;
-  --border:       #1a1a1a;
-  --border-bright:#2a2a2a;
-  --border-hover: #E10600;
-  --text:         #FFFFFF;
-  --text-muted:   #888888;
-  --text-dim:     #555555;
+  /* Premium dark palette - nuevo sistema */
+  --bg-base: #0D0D14;
+  --bg-surface: #13131F;
+  --bg-elevated: #1C1C2E;
+  
+  --border: rgba(255, 255, 255, 0.07);
+  --border-accent: rgba(232, 0, 45, 0.3);
+  
+  --text-primary: #EEEEF5;
+  --text-secondary: #7878A0;
+  --text-muted: #4A4A6A;
+  
+  --accent: #E8002D;
+  --accent-dim: rgba(232, 0, 45, 0.12);
+  
+  /* Legacy vars for compatibility */
+  --bg-primary: var(--bg-base);
+  --bg-secondary: var(--bg-surface);
+  --bg-card: var(--bg-surface);
+  --bg-card-alt: var(--bg-elevated);
+  --bg-hover: var(--bg-elevated);
+  
+  --border-bright: rgba(255, 255, 255, 0.12);
+  --border-hover: var(--border-accent);
+  
+  --text-dim: var(--text-muted);
+  
+  --f1-red: var(--accent);
+  --f1-red-dark: #B80024;
+  --f1-red-light: #FF1A4A;
 
   /* Official F1 timing colors */
-  --purple:   #BF00FF;
-  --green:    #00FF00;
-  --yellow:   #FFFF00;
-  --red-time: #FF0000;
-  --grey-time:#444444;
+  --purple: #BF00FF;
+  --green: #00FF44;
+  --yellow: #FFE600;
+  --red-time: #FF3333;
+  --grey-time: #555566;
 
   /* Flags */
-  --flag-green:  #00FF00;
-  --flag-yellow: #FFFF00;
-  --flag-sc:     #FF8C00;
-  --flag-red:    #FF0000;
+  --flag-green: #00FF44;
+  --flag-yellow: #FFE600;
+  --flag-sc: #FF8C00;
+  --flag-red: #FF3333;
 
-  /* Brand */
-  --f1-red:   #E10600;
-  --f1-red-dark: #8B0000;
+  /* Team colors 2026 */
+  --red-bull: #3671C6;
+  --ferrari: #E8002D;
+  --mercedes: #27F4D2;
+  --mclaren: #FF8000;
+  --aston: #229971;
+  --alpine: #FF87BC;
+  --williams: #64C4FF;
+  --vcarb: #6692FF;
+  --haas: #B6BABD;
+  --sauber: #52E252;
 }
 
 /* ─── Reset & Base ─────────────────────────────────────────────────────────── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { 
+  box-sizing: border-box; 
+  margin: 0; 
+  padding: 0; 
+}
 
-html { scroll-behavior: smooth; }
+html { 
+  scroll-behavior: smooth; 
+}
 
 body {
-  background-color: var(--bg-primary);
-  background-image: 
-    radial-gradient(ellipse at top, rgba(225, 6, 0, 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at bottom right, rgba(191, 0, 255, 0.05) 0%, transparent 40%);
-  background-attachment: fixed;
-  color: var(--text);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Selection */
+::selection {
+  background: var(--accent-dim);
+  color: #fff;
 }
 
 /* Numbers always monospace */
-.mono { font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', 'Courier New', monospace; }
+.mono { 
+  font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', 'Cascadia Code', 'Courier New', monospace;
+  font-feature-settings: 'tnum' 1;
+}
 
 /* ─── Scrollbar ──────────────────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--bg-primary); }
-::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #444; }
+::-webkit-scrollbar { 
+  width: 6px; 
+  height: 6px; 
+}
+::-webkit-scrollbar-track { 
+  background: var(--bg-base); 
+}
+::-webkit-scrollbar-thumb { 
+  background: var(--bg-elevated); 
+  border-radius: 3px; 
+}
+::-webkit-scrollbar-thumb:hover { 
+  background: var(--text-muted); 
+}
 
 /* ─── Animations ──────────────────────────────────────────────────────────── */
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.5; transform: scale(0.9); }
+  50% { opacity: 0.6; transform: scale(0.85); }
 }
-.animate-pulse-dot { animation: pulse-dot 1.5s ease-in-out infinite; }
-.animate-pulse-fast { animation: pulse-dot 0.8s ease-in-out infinite; }
+.animate-pulse-dot { 
+  animation: pulse-dot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; 
+}
+.animate-pulse-fast { 
+  animation: pulse-dot 1s cubic-bezier(0.4, 0, 0.6, 1) infinite; 
+}
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 5px rgba(225, 6, 0, 0.5), 0 0 10px rgba(225, 6, 0, 0.3); }
-  50% { box-shadow: 0 0 15px rgba(225, 6, 0, 0.8), 0 0 25px rgba(225, 6, 0, 0.5); }
+  0%, 100% { box-shadow: 0 0 5px rgba(232, 0, 45, 0.4), 0 0 20px rgba(232, 0, 45, 0.2); }
+  50% { box-shadow: 0 0 15px rgba(232, 0, 45, 0.6), 0 0 30px rgba(232, 0, 45, 0.3); }
 }
-.animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+.animate-pulse-glow { 
+  animation: pulse-glow 2.5s ease-in-out infinite; 
+}
 
 @keyframes flash-green {
-  0%   { background-color: rgba(0, 255, 0, 0.3); }
+  0%   { background-color: rgba(0, 255, 68, 0.25); }
   100% { background-color: transparent; }
 }
-.flash-improved { animation: flash-green 1.5s ease-out forwards; }
+.flash-improved { 
+  animation: flash-green 1.2s ease-out forwards; 
+}
 
 @keyframes flash-purple {
-  0%   { background-color: rgba(191, 0, 255, 0.3); }
+  0%   { background-color: rgba(191, 0, 255, 0.25); }
   100% { background-color: transparent; }
 }
-.flash-session-best { animation: flash-purple 1.5s ease-out forwards; }
+.flash-session-best { 
+  animation: flash-purple 1.2s ease-out forwards; 
+}
 
 @keyframes slide-in {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.animate-slide-in { animation: slide-in 0.3s ease-out; }
+.animate-slide-in { 
+  animation: slide-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-fade-in { 
+  animation: fade-in 0.3s ease-out forwards; 
+}
 
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
 .skeleton-shimmer {
-  background: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%);
+  background: linear-gradient(90deg, var(--bg-surface) 25%, var(--bg-elevated) 50%, var(--bg-surface) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
 
+/* ─── Premium Card ────────────────────────────────────────────────────────── */
+.f1-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.f1-card:hover {
+  border-color: var(--border-bright);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--accent-dim);
+  transform: translateY(-1px);
+}
+
+/* Glass card variant */
+.f1-card-glass {
+  background: rgba(19, 19, 31, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* ─── Premium Navbar ───────────────────────────────────────────────────────── */
+.navbar-glass {
+  background: var(--bg-base);
+  border-bottom: 1px solid var(--border);
+}
+
+.navbar-link {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  color: var(--text-secondary);
+  position: relative;
+}
+.navbar-link:hover { 
+  color: var(--text-primary); 
+  background: var(--bg-elevated);
+}
+.navbar-link.active { 
+  color: var(--text-primary); 
+  background: var(--accent-dim);
+}
+.navbar-link.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 2px;
+}
+
 /* ─── F1 Timing Colors ───────────────────────────────────────────────────── */
-.sector-purple { color: var(--purple); text-shadow: 0 0 10px rgba(191, 0, 255, 0.5); }
-.sector-green  { color: var(--green); text-shadow: 0 0 10px rgba(0, 255, 0, 0.4); }
+.sector-purple { 
+  color: var(--purple); 
+  text-shadow: 0 0 12px rgba(191, 0, 255, 0.5); 
+}
+.sector-green  { 
+  color: var(--green); 
+  text-shadow: 0 0 10px rgba(0, 255, 68, 0.4); 
+}
 .sector-yellow { color: var(--yellow); }
 .sector-white  { color: #ffffff; }
 .sector-grey   { color: var(--grey-time); }
 
-.sector-bg-purple { background: rgba(191, 0, 255, 0.2); }
-.sector-bg-green  { background: rgba(0, 255, 0, 0.15); }
-.sector-bg-yellow { background: rgba(255, 255, 0, 0.1); }
+.sector-bg-purple { background: rgba(191, 0, 255, 0.18); }
+.sector-bg-green  { background: rgba(0, 255, 68, 0.15); }
+.sector-bg-yellow { background: rgba(255, 230, 0, 0.10); }
 
 /* ─── Mini sector bars ────────────────────────────────────────────────────── */
 .mini-sector {
   display: inline-block;
-  width: 8px;
-  height: 12px;
+  width: 6px;
+  height: 14px;
   border-radius: 2px;
   margin-right: 2px;
   vertical-align: middle;
 }
 
-/* ─── PRO F1 Card ─────────────────────────────────────────────────────────── */
-.f1-card {
-  background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-card-alt) 100%);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: 0 0 30px rgba(225, 6, 0, 0.03), inset 0 1px 0 rgba(255,255,255,0.02);
-  transition: all 0.2s ease;
-}
-.f1-card:hover {
-  border-color: rgba(225, 6, 0, 0.3);
-  box-shadow: 0 0 40px rgba(225, 6, 0, 0.08), inset 0 1px 0 rgba(255,255,255,0.03);
-}
-
 /* ─── DRS indicator ──────────────────────────────────────────────────────── */
 .drs-active {
-  color: #00FF00;
-  font-weight: 900;
+  color: var(--green);
+  font-weight: 800;
   font-size: 0.65rem;
-  letter-spacing: 0.1em;
-  text-shadow: 0 0 8px rgba(0, 255, 0, 0.6);
+  letter-spacing: 0.12em;
+  text-shadow: 0 0 8px rgba(0, 255, 68, 0.5);
 }
-.drs-inactive { color: #333; font-size: 0.65rem; }
+.drs-inactive { 
+  color: var(--text-muted); 
+  font-size: 0.65rem; 
+}
 
 /* ─── Position badges ─────────────────────────────────────────────────────── */
-.pos-1 { color: #FFD700; font-weight: 900; font-size: 1.2rem; text-shadow: 0 0 15px rgba(255, 215, 0, 0.5); }
-.pos-2 { color: #C0C0C0; font-weight: 900; font-size: 1.1rem; }
-.pos-3 { color: #CD7F32; font-weight: 900; font-size: 1.1rem; }
-.pos-n { color: #888; font-weight: 700; }
+.pos-1 { 
+  color: #FFD700; 
+  font-weight: 900; 
+  font-size: 1.25rem; 
+  text-shadow: 0 0 15px rgba(255, 215, 0, 0.4); 
+}
+.pos-2 { 
+  color: #C0C0C0; 
+  font-weight: 900; 
+  font-size: 1.15rem; 
+}
+.pos-3 { 
+  color: #CD7F32; 
+  font-weight: 900; 
+  font-size: 1.15rem; 
+}
+.pos-n { 
+  color: var(--text-secondary); 
+  font-weight: 700; 
+}
 
 /* ─── Flag banner ─────────────────────────────────────────────────────────── */
 .flag-banner {
-  padding: 0.25rem 0.75rem;
-  border-radius: 4px;
+  padding: 0.35rem 0.875rem;
+  border-radius: 6px;
   font-size: 0.65rem;
   font-weight: 800;
   letter-spacing: 0.1em;
@@ -162,98 +305,63 @@ body {
 
 /* ─── Tyre badge ──────────────────────────────────────────────────────────── */
 .tyre-badge {
-  width: 1.6rem;
-  height: 1.6rem;
+  width: 1.5rem;
+  height: 1.5rem;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 900;
   color: #000;
   line-height: 1;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 .tyre-soft         { background: #FF3333; }
-.tyre-medium       { background: #FFFF00; }
+.tyre-medium       { background: #FFF200; }
 .tyre-hard         { background: #FFFFFF; }
 .tyre-intermediate { background: #39B54A; color: #fff; }
 .tyre-wet          { background: #0067FF; color: #fff; }
 
-/* ─── PRO Timing table ────────────────────────────────────────────────────── */
+/* ─── Premium Timing table ────────────────────────────────────────────────── */
 .timing-table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
 }
 .timing-table th {
-  background: var(--bg-secondary);
-  color: #666;
-  font-size: 0.6rem;
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-size: 0.65rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  padding: 0.75rem 0.75rem;
+  letter-spacing: 0.12em;
+  padding: 0.875rem 1rem;
   border-bottom: 1px solid var(--border-bright);
   white-space: nowrap;
 }
 .timing-table td {
-  padding: 0.6rem 0.75rem;
-  border-bottom: 1px solid rgba(40, 40, 40, 0.5);
-  font-size: 0.85rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.875rem;
   white-space: nowrap;
 }
-.timing-table tbody tr:nth-child(odd) { background: var(--bg-primary); }
-.timing-table tbody tr:nth-child(even) { background: var(--bg-secondary); }
-.timing-table tbody tr:hover { background: rgba(255,255,255,0.04); }
+.timing-table tbody tr { 
+  transition: background 0.15s ease; 
+}
+.timing-table tbody tr:hover { 
+  background: var(--bg-elevated); 
+}
 .timing-table tbody tr.pos-leader { 
-  background: linear-gradient(90deg, rgba(225, 6, 0, 0.15) 0%, transparent 30%);
-  border-left: 3px solid var(--f1-red);
+  background: linear-gradient(90deg, rgba(232, 0, 45, 0.12) 0%, transparent 35%);
 }
 
 /* ─── Team stripe ─────────────────────────────────────────────────────────── */
 .team-stripe {
-  width: 4px;
-  min-width: 4px;
+  width: 3px;
+  min-width: 3px;
   height: 100%;
   display: block;
-  border-radius: 2px;
-}
-
-/* ─── PRO Navbar ───────────────────────────────────────────────────────────── */
-.navbar-glass {
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.navbar-link {
-  padding: 0.4rem 1rem;
-  border-radius: 8px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  transition: all 0.2s;
-  color: #888;
-  position: relative;
-}
-.navbar-link:hover { 
-  color: #fff; 
-  background: rgba(255,255,255,0.05);
-}
-.navbar-link.active { 
-  color: #fff; 
-  background: rgba(225, 6, 0, 0.15);
-}
-.navbar-link.active::before {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 20px;
-  height: 2px;
-  background: var(--f1-red);
   border-radius: 2px;
 }
 
@@ -261,49 +369,49 @@ body {
 .status-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.375rem;
-  padding: 0.25rem 0.75rem;
+  gap: 0.5rem;
+  padding: 0.35rem 0.875rem;
   border-radius: 9999px;
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 .status-live {
-  background: rgba(225, 6, 0, 0.15);
-  color: var(--f1-red);
-  border: 1px solid rgba(225, 6, 0, 0.3);
+  background: var(--accent-dim);
+  color: var(--accent);
+  border: 1px solid var(--border-accent);
 }
 
 /* ─── Gap colors ───────────────────────────────────────────────────────────── */
-.gap-closing { color: #00FF00; }
-.gap-extending { color: #FF4444; }
-.gap-neutral { color: #888; }
+.gap-closing { color: var(--green); }
+.gap-extending { color: var(--red-time); }
+.gap-neutral { color: var(--text-secondary); }
 
 /* ─── Podio styling ───────────────────────────────────────────────────────── */
 .podium-1 { 
-  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(255, 215, 0, 0.05) 100%);
-  border: 1px solid rgba(255, 215, 0, 0.3);
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.12) 0%, rgba(255, 215, 0, 0.03) 100%);
+  border: 1px solid rgba(255, 215, 0, 0.25);
 }
 .podium-2 { 
-  background: linear-gradient(135deg, rgba(192, 192, 192, 0.15) 0%, rgba(192, 192, 192, 0.03) 100%);
-  border: 1px solid rgba(192, 192, 192, 0.2);
+  background: linear-gradient(135deg, rgba(192, 192, 192, 0.10) 0%, rgba(192, 192, 192, 0.02) 100%);
+  border: 1px solid rgba(192, 192, 192, 0.15);
 }
 .podium-3 { 
-  background: linear-gradient(135deg, rgba(205, 127, 50, 0.15) 0%, rgba(205, 127, 50, 0.03) 100%);
-  border: 1px solid rgba(205, 127, 50, 0.2);
+  background: linear-gradient(135deg, rgba(205, 127, 50, 0.10) 0%, rgba(205, 127, 50, 0.02) 100%);
+  border: 1px solid rgba(205, 127, 50, 0.15);
 }
 
 /* ─── Hero Section ────────────────────────────────────────────────────────── */
 .hero-gradient {
-  background: radial-gradient(ellipse at center top, rgba(225, 6, 0, 0.15) 0%, transparent 60%);
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(232, 0, 45, 0.08) 0%, transparent 60%);
 }
 
 /* ─── Section separator ───────────────────────────────────────────────────── */
 .section-sep {
   border-bottom: 1px solid var(--border);
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
 }
 
 /* ─── Empty state ─────────────────────────────────────────────────────────── */
@@ -313,31 +421,74 @@ body {
   align-items: center;
   justify-content: center;
   padding: 4rem 2rem;
-  color: #444;
+  color: var(--text-muted);
   text-align: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
-/* ─── Form elements ───────────────────────────────────────────────────────── */
+/* ─── Premium Form elements ───────────────────────────────────────────────── */
 select, input, button { 
   transition: all 0.2s ease;
-  background: var(--bg-card);
+  background: var(--bg-surface);
   border: 1px solid var(--border);
-  color: #fff;
+  color: var(--text-primary);
+  border-radius: 8px;
 }
-select:hover, input:hover { border-color: #333; }
+select:hover, input:hover { 
+  border-color: var(--border-bright); 
+}
 select:focus, input:focus {
   outline: none;
-  border-color: var(--f1-red);
-  box-shadow: 0 0 0 3px rgba(225, 6, 0, 0.15);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
 }
 
-/* ─── Chart containers ────────────────────────────────────────────────────── */
+/* Global slider accent color */
+input[type="range"] {
+  accent-color: var(--accent);
+}
+
+/* Premium button */
+.btn-primary {
+  background: var(--accent);
+  color: white;
+  border: none;
+  font-weight: 600;
+  padding: 0.625rem 1.25rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(232, 0, 45, 0.3);
+}
+.btn-primary:hover {
+  background: var(--f1-red-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(232, 0, 45, 0.4);
+}
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  font-weight: 500;
+  padding: 0.625rem 1.25rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+.btn-secondary:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-bright);
+}
+
+/* ─── Premium Chart containers ────────────────────────────────────────────── */
 .chart-container {
-  background: var(--bg-card);
+  background: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 1.5rem;
+  padding: 20px 24px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
 /* ─── Scroll shadows ──────────────────────────────────────────────────────── */
@@ -350,7 +501,131 @@ select:focus, input:focus {
   right: 0;
   top: 0;
   bottom: 0;
-  width: 30px;
-  background: linear-gradient(90deg, transparent, var(--bg-card));
+  width: 40px;
+  background: linear-gradient(90deg, transparent, var(--bg-surface));
   pointer-events: none;
+}
+
+/* ─── Tab styling ─────────────────────────────────────────────────────────── */
+.tab-group {
+  display: flex;
+  gap: 0.25rem;
+  background: var(--bg-base);
+  padding: 0.375rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+.tab {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+.tab:hover {
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+}
+.tab.active {
+  color: var(--text-primary);
+  background: var(--accent-dim);
+  font-weight: 600;
+}
+
+/* ─── Loading skeletons ───────────────────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-surface) 25%, var(--bg-elevated) 50%, var(--bg-surface) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
+}
+
+/* ─── Premium Table styling ───────────────────────────────────────────────── */
+.premium-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.premium-table th {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-bright);
+  text-align: left;
+}
+.premium-table td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+}
+.premium-table tbody tr {
+  transition: all 0.15s ease;
+}
+.premium-table tbody tr:hover {
+  background: var(--bg-elevated);
+}
+
+/* ─── Sidebar styling ─────────────────────────────────────────────────────── */
+.sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border);
+  padding-top: 56px;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.sidebar-item:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+.sidebar-item.active {
+  background: var(--accent-dim);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.sidebar-section-title {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  padding: 1rem 1rem 0.5rem;
+  margin-top: 0.5rem;
+}
+
+/* ─── Recharts customization ──────────────────────────────────────────────── */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: var(--border) !important;
+}
+.recharts-tooltip-wrapper {
+  outline: none !important;
+}
+
+/* ─── Focus states ────────────────────────────────────────────────────────── */
+button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }

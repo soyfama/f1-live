@@ -6,7 +6,7 @@ export const metadata = {
 
 export default function LivePage() {
   return (
-    <div className="max-w-screen-2xl mx-auto px-4 py-6">
+    <div className="min-h-[calc(100vh-3.5rem)]">
       <LiveTimingClient />
     </div>
   );
