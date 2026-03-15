@@ -28,7 +28,6 @@ export async function GET(request: Request) {
 
       const tick = async () => {
         try {
-          // Get session — use param if provided, else latest
           const sessions = await fetchLatest<Record<string, unknown>>('/sessions', {
             session_key: sessionKeyParam ?? 'latest',
           });
@@ -40,22 +39,20 @@ export async function GET(request: Request) {
 
           const sessionKey = String(session.session_key);
 
-          // Parallel fetch
-          const [drivers, positions, laps, stints, intervals] = await Promise.all([
+          const [drivers, positions, laps, stints, intervals, pits] = await Promise.all([
             fetchLatest<Record<string, unknown>>('/drivers', { session_key: sessionKey }),
             fetchLatest<Record<string, unknown>>('/position', { session_key: sessionKey }),
             fetchLatest<Record<string, unknown>>('/laps', { session_key: sessionKey }),
             fetchLatest<Record<string, unknown>>('/stints', { session_key: sessionKey }),
             fetchLatest<Record<string, unknown>>('/intervals', { session_key: sessionKey }),
+            fetchLatest<Record<string, unknown>>('/pit', { session_key: sessionKey }),
           ]);
 
-          // Build driver map
           const driverMap: Record<number, Record<string, unknown>> = {};
           for (const d of drivers) {
             driverMap[d.driver_number as number] = d;
           }
 
-          // Latest position per driver
           const latestPos: Record<number, Record<string, unknown>> = {};
           for (const p of positions) {
             const dn = p.driver_number as number;
@@ -64,7 +61,6 @@ export async function GET(request: Request) {
             }
           }
 
-          // Latest lap per driver
           const latestLap: Record<number, Record<string, unknown>> = {};
           for (const l of laps) {
             const dn = l.driver_number as number;
@@ -74,7 +70,6 @@ export async function GET(request: Request) {
             }
           }
 
-          // Best lap per driver
           const bestLap: Record<number, number> = {};
           for (const l of laps) {
             const dn = l.driver_number as number;
@@ -84,7 +79,6 @@ export async function GET(request: Request) {
             }
           }
 
-          // Latest stint per driver
           const latestStint: Record<number, Record<string, unknown>> = {};
           for (const s of stints) {
             const dn = s.driver_number as number;
@@ -94,7 +88,6 @@ export async function GET(request: Request) {
             }
           }
 
-          // Latest interval per driver
           const latestInterval: Record<number, Record<string, unknown>> = {};
           for (const i of intervals) {
             const dn = i.driver_number as number;
@@ -103,7 +96,20 @@ export async function GET(request: Request) {
             }
           }
 
-          // Build timing array
+          const pitCount: Record<number, number> = {};
+          const isInPit: Record<number, boolean> = {};
+          for (const p of pits) {
+            const dn = p.driver_number as number;
+            pitCount[dn] = (pitCount[dn] || 0) + 1;
+            // Check if pit entry is recent and no exit yet
+            const pitDate = new Date(p.date as string);
+            const now = new Date();
+            const secondsSincePit = (now.getTime() - pitDate.getTime()) / 1000;
+            if (secondsSincePit < 60) {
+              isInPit[dn] = true;
+            }
+          }
+
           const timing = Object.values(driverMap).map((driver) => {
             const dn = driver.driver_number as number;
             const pos = latestPos[dn];
@@ -129,6 +135,8 @@ export async function GET(request: Request) {
               interval: interval?.interval ?? null,
               isPitOut: lap?.is_pit_out_lap ?? false,
               drs: null,
+              pits: pitCount[dn] || 0,
+              isInPit: isInPit[dn] || false,
             };
           }).sort((a, b) => (a.position as number) - (b.position as number));
 
@@ -151,10 +159,8 @@ export async function GET(request: Request) {
         }
       };
 
-      // Initial tick
       await tick();
 
-      // Poll every 3s
       const interval = setInterval(async () => {
         try {
           await tick();
@@ -164,7 +170,6 @@ export async function GET(request: Request) {
         }
       }, 3000);
 
-      // Clean up after 5 min
       setTimeout(() => {
         clearInterval(interval);
         controller.close();

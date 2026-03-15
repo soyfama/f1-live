@@ -6,8 +6,7 @@ import { formatLapTime } from '@/lib/openf1';
 import {
   getTyreColor, getTyreLetter,
   classifySector, SECTOR_CLASS_STYLES,
-  getFlagConfig,
-  getTeamColor,
+  getFlagConfig, getTeamColor
 } from '@/lib/f1-colors';
 
 interface DriverTiming {
@@ -29,6 +28,8 @@ interface DriverTiming {
   interval: number | null;
   isPitOut: boolean;
   drs: number | null;
+  pits: number;
+  isInPit: boolean;
 }
 
 interface SessionInfo {
@@ -41,6 +42,15 @@ interface SessionInfo {
   year: number;
 }
 
+interface WeatherData {
+  track_temperature: number;
+  air_temperature: number;
+  humidity: number;
+  rainfall: number;
+  wind_speed: number;
+  wind_direction: number;
+}
+
 interface LiveData {
   type: string;
   session?: SessionInfo;
@@ -49,39 +59,58 @@ interface LiveData {
   message?: string;
 }
 
-interface MeetingOption {
-  meetingKey: number;
-  label: string;
+const REAL_DEGRADATION = {
+  SOFT: { baseDeg: 0.18, cliff: 25, cliffMultiplier: 2.5 },
+  MEDIUM: { baseDeg: 0.09, cliff: 38, cliffMultiplier: 2.0 },
+  HARD: { baseDeg: 0.05, cliff: 52, cliffMultiplier: 1.8 }
+} as const;
+
+function getLapsToCliff(compound: string | null, age: number | null): number | null {
+  if (!compound || age === null) return null;
+  const upperCompound = compound.toUpperCase();
+  const deg = REAL_DEGRADATION[upperCompound as keyof typeof REAL_DEGRADATION];
+  if (!deg) return null;
+  return Math.max(0, deg.cliff - age);
 }
 
-interface SessionOption {
-  sessionKey: number;
-  label: string;
-}
-
-function TyreBadge({ compound, age }: { compound: string | null; age: number | null }) {
+function TyreBadgeWithTooltip({ compound, age }: { compound: string | null; age: number | null }) {
   if (!compound) return <span className="text-gray-500 text-xs">—</span>;
   const bg = getTyreColor(compound);
   const letter = getTyreLetter(compound);
+  const lapsToCliff = getLapsToCliff(compound, age);
+  
   return (
-    <span className="inline-flex items-center gap-1.5">
+    <div className="group relative inline-flex items-center gap-1.5">
       <span className="tyre-badge" style={{ backgroundColor: bg, color: '#000' }} title={compound}>
         {letter}
       </span>
       {age !== null && (
         <span className="text-gray-400 text-[10px] mono tabular-nums">{age}</span>
       )}
-    </span>
+      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-[#1a1a2e] border border-[#333] rounded-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-xl">
+        <div className="font-semibold text-white">{compound} {age !== null ? `(${age} laps)` : ''}</div>
+        {lapsToCliff !== null && (
+          <div className={`mt-1 ${lapsToCliff < 5 ? 'text-red-400' : lapsToCliff < 10 ? 'text-yellow-400' : 'text-green-400'}`}>
+            ~{lapsToCliff} laps to cliff
+          </div>
+        )}
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-2 h-2 bg-[#1a1a2e] border-r border-b border-[#333] rotate-45"></div>
+      </div>
+    </div>
   );
 }
 
 function DrsCell({ drs }: { drs: number | null }) {
-  const isActive = drs !== null && drs >= 8;
-  return <span className={isActive ? 'drs-active' : 'drs-inactive'}>DRS</span>;
+  if (drs === null || drs === undefined) return <span className="text-gray-600 text-[10px]">—</span>;
+  const isActive = drs >= 8;
+  const isAvailable = drs >= 1;
+  if (isActive) return <span className="drs-active">DRS</span>;
+  if (isAvailable) return <span className="text-[#FFD700] text-[10px] font-bold">DRS</span>;
+  return <span className="text-gray-600 text-[10px]">DRS</span>;
 }
 
 function SectorCell({ time, personalBest, sessionBest }: { time: number | null; personalBest: number | null; sessionBest: number | null }) {
-  if (!time) return <span className="text-gray-500 mono text-[11px]">—</span>;
+  if (!time) return <span className="text-gray-600 mono text-[11px]">—</span>;
   const cls = classifySector(time, personalBest, sessionBest);
   const style = SECTOR_CLASS_STYLES[cls];
   return (
@@ -104,80 +133,123 @@ function MiniSectors({ s1, s2, s3, bestS1, bestS2, bestS3, sessionBestS1, sessio
   return (
     <span className="inline-flex items-center gap-[3px]">
       {sectors.map((s, i) => {
-        const color = !s.t ? '#1a1a1a' : SECTOR_CLASS_STYLES[classifySector(s.t, s.pb, s.sb)].color;
+        const color = !s.t ? '#333' : SECTOR_CLASS_STYLES[classifySector(s.t, s.pb, s.sb)].color;
         return <span key={i} className="mini-sector" style={{ backgroundColor: color }} />;
       })}
     </span>
   );
 }
 
-function FlagBanner({ status }: { status: string }) {
-  const cfg = getFlagConfig(status);
-  return <span className="flag-banner" style={{ background: cfg.bg, color: cfg.color }}>{cfg.label}</span>;
-}
-
 function GapCell({ gap, pos }: { gap: number | null; pos: number }) {
-  if (pos === 1) return <span className="text-[#FFD700] text-[11px] mono font-bold tracking-wider">LEADER</span>;
-  if (gap === null) return <span className="text-gray-500 mono text-[11px]">—</span>;
-  return <span className="mono text-[11px] text-gray-300 tabular-nums">+{gap.toFixed(3)}</span>;
+  if (pos === 1) return <span className="text-[10px] bg-[#E10600] text-white px-2 py-0.5 rounded font-bold tracking-wider">LEADER</span>;
+  if (gap === null) return <span className="text-gray-600 mono text-[11px]">—</span>;
+  let colorClass = 'text-gray-300';
+  if (gap < 1.0) colorClass = 'text-[#00FF44] font-bold';
+  else if (gap < 3.0) colorClass = 'text-[#FFE600]';
+  else if (gap > 30) colorClass = 'text-gray-600';
+  return (
+    <div className="flex items-center gap-2">
+      <span className={`mono text-[11px] tabular-nums ${colorClass}`}>+{gap.toFixed(3)}</span>
+      <div className="w-12 h-1 bg-[#333] rounded-full overflow-hidden hidden sm:block">
+        <div className="h-full rounded-full transition-all duration-500"
+          style={{ width: `${Math.min((gap / 60) * 100, 100)}%`, backgroundColor: gap < 1.0 ? '#00FF44' : gap < 3.0 ? '#FFE600' : '#666' }} />
+      </div>
+    </div>
+  );
 }
 
-function LapCell({ time, best }: { time: number | null; best: number | null }) {
-  if (!time) return <span className="text-gray-500 mono text-[11px]">—</span>;
-  const isBest = best !== null && Math.abs(time - best) < 0.001;
-  return (
-    <span className={`mono text-[11px] tabular-nums ${isBest ? 'text-[#BF00FF] font-bold' : 'text-gray-300'}`}>
-      {formatLapTime(time)}
-    </span>
-  );
+function IntervalCell({ interval }: { interval: number | null }) {
+  if (interval === null) return <span className="text-gray-600 mono text-[11px]">—</span>;
+  let colorClass = 'text-gray-300';
+  if (interval < 1.0) colorClass = 'text-[#00FF44] font-bold';
+  else if (interval < 3.0) colorClass = 'text-[#FFE600]';
+  else if (interval > 10) colorClass = 'text-gray-500';
+  return <span className={`mono text-[11px] tabular-nums ${colorClass}`}>+{interval.toFixed(3)}</span>;
+}
+
+function LapCell({ time, best, sessionBest }: { time: number | null; best: number | null; sessionBest: number | null }) {
+  if (!time) return <span className="text-gray-600 mono text-[11px]">—</span>;
+  let colorClass = 'text-gray-300';
+  if (sessionBest && Math.abs(time - sessionBest) < 0.001) colorClass = 'text-[#BF00FF] font-bold';
+  else if (best && Math.abs(time - best) < 0.001) colorClass = 'text-[#00FF44] font-bold';
+  else if (best && time > best) colorClass = 'text-[#FFE600]';
+  return <span className={`mono text-[11px] tabular-nums ${colorClass}`}>{formatLapTime(time)}</span>;
+}
+
+function BestLapCell({ time, isSessionBest }: { time: number | null; isSessionBest: boolean }) {
+  if (!time) return <span className="text-gray-600 mono text-[11px]">—</span>;
+  return <span className={`mono text-[11px] tabular-nums ${isSessionBest ? 'text-[#BF00FF] font-bold' : 'text-gray-300'}`}>{formatLapTime(time)}</span>;
 }
 
 function TimeAgo({ date }: { date: Date }) {
   const [seconds, setSeconds] = useState(0);
-  
   useEffect(() => {
-    const update = () => {
-      const diff = Math.floor((Date.now() - date.getTime()) / 1000);
-      setSeconds(diff);
-    };
+    const update = () => setSeconds(Math.floor((Date.now() - date.getTime()) / 1000));
     update();
     const interval = setInterval(update, 1000);
     return () => clearInterval(interval);
   }, [date]);
-
   if (seconds < 5) return <span className="text-green-400">Just now</span>;
   if (seconds < 60) return <span className="text-gray-400">{seconds}s ago</span>;
   return <span className="text-gray-500">{Math.floor(seconds / 60)}m ago</span>;
 }
 
-function CircuitSVG({ circuit }: { circuit: string }) {
-  const trackPath = [
-    "M 55,40", "L 290,40", "C 330,40 345,55 345,90", "L 345,120",
-    "C 345,138 332,145 320,140", "C 308,135 302,148 305,165", "L 308,205",
-    "C 310,235 292,258 265,262", "C 238,266 215,258 205,240",
-    "C 195,222 198,205 210,195", "L 225,170", "C 238,155 235,138 222,130",
-    "L 195,125", "C 178,120 168,108 170,90", "L 172,65",
-    "C 174,50 165,40 150,40", "L 55,40",
-  ].join(" ");
+function WeatherStrip({ sessionKey }: { sessionKey: number | null }) {
+  const [weather, setWeather] = useState<WeatherData | null>(null);
+  useEffect(() => {
+    if (!sessionKey) return;
+    const fetchWeather = async () => {
+      try {
+        const res = await fetch(`https://api.openf1.org/v1/weather?session_key=${sessionKey}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data && data.length > 0) setWeather(data[data.length - 1]);
+      } catch {}
+    };
+    fetchWeather();
+    const interval = setInterval(fetchWeather, 30000);
+    return () => clearInterval(interval);
+  }, [sessionKey]);
 
+  if (!weather) return null;
+  const hasRain = weather.rainfall > 0;
   return (
-    <div className="relative w-full flex flex-col items-center justify-center gap-2">
-      <svg viewBox="0 0 400 300" className="w-full h-36">
-        <path d={trackPath} fill="none" stroke="#1a1a1a" strokeWidth="14" strokeLinecap="round" strokeLinejoin="round" />
-        <path d={trackPath} fill="none" stroke="#222" strokeWidth="9" strokeLinecap="round" strokeLinejoin="round" />
-        <path d={trackPath} fill="none" stroke="#333" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" />
-        <path d={trackPath} fill="none" stroke="#E10600" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" strokeOpacity="0.6" />
-        <line x1="55" y1="33" x2="55" y2="47" stroke="#ffffff" strokeWidth="4" strokeLinecap="round" />
-        <line x1="60" y1="33" x2="60" y2="47" stroke="#E10600" strokeWidth="2" strokeLinecap="round" />
-        <circle cx="345" cy="90" r="3" fill="#E10600" opacity="0.5" />
-        <circle cx="235" cy="262" r="3" fill="#E10600" opacity="0.5" />
-      </svg>
-      <span className="text-[10px] text-gray-500 truncate max-w-full px-1 text-center uppercase tracking-wider">{circuit}</span>
+    <div className="flex flex-wrap items-center gap-4 px-4 py-2 bg-[#13131F] border border-[rgba(255,255,255,0.07)] rounded-lg">
+      <div className="flex items-center gap-1.5 text-xs">
+        <span className="text-gray-400">🌡️</span>
+        <span className="text-gray-500">Track</span>
+        <span className="text-white font-mono">{weather.track_temperature?.toFixed(1)}°C</span>
+      </div>
+      <div className="flex items-center gap-1.5 text-xs">
+        <span className="text-gray-400">🌬️</span>
+        <span className="text-gray-500">Air</span>
+        <span className="text-white font-mono">{weather.air_temperature?.toFixed(1)}°C</span>
+      </div>
+      <div className="flex items-center gap-1.5 text-xs">
+        <span className="text-gray-400">💧</span>
+        <span className="text-gray-500">Hum</span>
+        <span className="text-white font-mono">{weather.humidity?.toFixed(0)}%</span>
+      </div>
+      {hasRain && (
+        <div className="flex items-center gap-1.5 text-xs bg-blue-500/20 px-2 py-0.5 rounded animate-pulse-fast">
+          <span>☔</span>
+          <span className="text-blue-400 font-bold">Rain {weather.rainfall.toFixed(1)}mm</span>
+        </div>
+      )}
     </div>
   );
 }
 
-// Skeleton loader component
+function ProminentFlagBanner({ status }: { status: string }) {
+  const cfg = getFlagConfig(status);
+  return (
+    <div className="px-4 py-2 rounded-lg font-bold text-sm tracking-wider animate-pulse-fast"
+      style={{ backgroundColor: cfg.bg, color: cfg.color, boxShadow: `0 0 20px ${cfg.bg}40` }}>
+      {cfg.label}
+    </div>
+  );
+}
+
 function TimingTableSkeleton() {
   return (
     <div className="f1-card overflow-hidden">
@@ -199,6 +271,7 @@ function TimingTableSkeleton() {
               <th className="text-center hidden xl:table-cell">SEC</th>
               <th className="text-center">TYRE</th>
               <th className="text-right hidden sm:table-cell">LAP</th>
+              <th className="text-right hidden md:table-cell">PITS</th>
             </tr>
           </thead>
           <tbody>
@@ -218,6 +291,7 @@ function TimingTableSkeleton() {
                 <td className="hidden xl:table-cell"><div className="h-4 bg-white/5 rounded animate-pulse w-12 mx-auto" /></td>
                 <td><div className="h-4 bg-white/5 rounded animate-pulse w-10 mx-auto" /></td>
                 <td className="hidden sm:table-cell"><div className="h-4 bg-white/5 rounded animate-pulse w-8 ml-auto" /></td>
+                <td className="hidden md:table-cell"><div className="h-4 bg-white/5 rounded animate-pulse w-6 ml-auto" /></td>
               </tr>
             ))}
           </tbody>
@@ -229,8 +303,8 @@ function TimingTableSkeleton() {
 
 function SessionSelector({ onSessionChange, currentSessionKey }: { onSessionChange: (key: number | null) => void; currentSessionKey: number | null }) {
   const [year, setYear] = useState(new Date().getFullYear());
-  const [meetings, setMeetings] = useState<MeetingOption[]>([]);
-  const [sessions, setSessions] = useState<SessionOption[]>([]);
+  const [meetings, setMeetings] = useState<{ meetingKey: number; label: string }[]>([]);
+  const [sessions, setSessions] = useState<{ sessionKey: number; label: string }[]>([]);
   const [selectedMeeting, setSelectedMeeting] = useState<number | null>(null);
   const [selectedSession, setSelectedSession] = useState<number | null>(null);
 
@@ -296,7 +370,7 @@ export default function LiveTimingClient() {
 
   useEffect(() => {
     if (data?.session || !connected) { setConnectionTimeout(false); return; }
-    const t = setTimeout(() => setConnectionTimeout(true), 25000);
+    const t = setTimeout(() => setConnectionTimeout(true), 10000);
     return () => clearTimeout(t);
   }, [data?.session, connected]);
 
@@ -369,7 +443,6 @@ export default function LiveTimingClient() {
 
   const isManual = manualSessionKey !== null;
 
-  // Loading state - centrado en viewport
   if (!data || !data.session) {
     return (
       <div className="min-h-[calc(100vh-3.5rem)] flex flex-col">
@@ -385,78 +458,72 @@ export default function LiveTimingClient() {
               </div>
             </div>
           </div>
-          
-          {noLiveSession && (
-            <div className="mt-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 text-yellow-400 text-sm flex items-center gap-2">
-              <span>⚠️</span>
-              <span>No live F1 session active. Loading latest available session data...</span>
+          {connectionTimeout && (
+            <div className="mt-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 text-yellow-400 text-sm">
+              <div className="flex items-start gap-3">
+                <span className="text-xl">⚠️</span>
+                <div>
+                  <p className="font-semibold mb-1">No live session active</p>
+                  <p className="text-yellow-400/80 text-xs">No live F1 session found. Showing last available data or select a session above.</p>
+                  <div className="mt-3 flex gap-2">
+                    <button onClick={() => { setConnectionTimeout(false); connect(manualSessionKey); }} 
+                      className="bg-[#E10600] hover:bg-[#c00500] text-white px-4 py-2 rounded-lg text-xs font-semibold transition-colors">Retry connection</button>
+                    <Link href="/calendar"
+                      className="bg-[#111] hover:bg-[#1a1a1a] border border-[#222] text-gray-300 px-4 py-2 rounded-lg text-xs font-semibold transition-colors">View Calendar</Link>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>
-        
-        {/* Centrado vertical y horizontal */}
         <div className="flex-1 flex items-center justify-center px-4">
-          {connectionTimeout ? (
-            <div className="f1-card p-8 md:p-10 text-center max-w-md w-full mx-4">
-              <p className="text-4xl mb-3">📡</p>
-              <p className="text-white font-semibold mb-1">No active F1 session found</p>
-              <p className="text-gray-400 text-sm mb-4">There is no live session right now. Select a past session above to explore historical data, or check the calendar.</p>
-              <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                <button 
-                  onClick={() => { setConnectionTimeout(false); connect(manualSessionKey); }} 
-                  className="bg-[#E10600] hover:bg-[#c00500] text-white px-5 py-2 rounded-lg text-sm font-semibold transition-colors"
-                >
-                  Retry connection
-                </button>
-                <Link 
-                  href="/calendar"
-                  className="bg-[#111] hover:bg-[#1a1a1a] border border-[#222] text-gray-300 px-5 py-2 rounded-lg text-sm font-semibold transition-colors"
-                >
-                  View Calendar
-                </Link>
-              </div>
+          <div className="flex flex-col items-center justify-center text-center w-full max-w-4xl px-4">
+            <div className="w-10 h-10 border-2 border-[#E10600] border-t-transparent rounded-full animate-spin mb-4" />
+            <p className="text-sm text-gray-300">{connectionTimeout ? 'Loading last session data...' : 'Connecting to live timing...'}</p>
+            <p className="text-xs mt-1 text-gray-500">{connectionTimeout ? 'Historical' : 'Live'} session</p>
+            <div className="mt-8 w-full">
+              <TimingTableSkeleton />
             </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center text-center w-full max-w-4xl px-4">
-              <div className="w-10 h-10 border-2 border-[#E10600] border-t-transparent rounded-full animate-spin mb-4" />
-              <p className="text-sm text-gray-300">{noLiveSession ? 'Loading last session data...' : 'Connecting to live timing...'}</p>
-              <p className="text-xs mt-1 text-gray-500">{noLiveSession ? 'Historical' : 'Live'} session</p>
-              
-              {/* Skeleton mientras carga */}
-              <div className="mt-8 w-full">
-                <TimingTableSkeleton />
-              </div>
-            </div>
-          )}
+          </div>
         </div>
       </div>
     );
   }
 
   const { session, timing = [] } = data;
-  const flagCfg = getFlagConfig(session.status);
+  const fastestLapDriver = sessionBests.lap ? timing.find(d => d.bestLap === sessionBests.lap) : null;
 
   return (
     <div className="space-y-4 p-4">
-      <div className="rounded-xl p-4 flex flex-col lg:flex-row lg:items-center gap-3" style={{ background: `linear-gradient(135deg, #0a0a0a 0%, ${flagCfg.bg}10 100%)`, border: `1px solid ${flagCfg.bg}40` }}>
-        <div className="flex flex-col">
-          <span className="text-white font-bold text-sm">{session.year} {session.country} Grand Prix</span>
-          <span className="text-gray-400 text-xs">{session.circuit} • {session.name}</span>
-        </div>
-        <FlagBanner status={session.status} />
-        {isManual && <span className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-xs px-2 py-0.5 rounded-full">Historical</span>}
-        <div className="lg:ml-auto flex flex-col sm:flex-row sm:items-center gap-3">
-          <SessionSelector onSessionChange={handleSessionChange} currentSessionKey={manualSessionKey} />
-          <div className="flex items-center gap-2 text-xs text-gray-400">
-            {connected ? <><span className="w-2 h-2 rounded-full bg-green-400 animate-pulse-dot" /><span className="text-green-400 font-semibold">LIVE</span></> : <><span className="w-2 h-2 rounded-full bg-red-500" /><span className="text-red-500">OFFLINE</span></>}
-            {lastUpdate && <span className="text-gray-500 ml-2"><TimeAgo date={lastUpdate} /></span>}
+      <div className="rounded-xl p-4" style={{ background: `linear-gradient(135deg, #0a0a0a 0%, ${getFlagConfig(session.status).bg}15 100%)`, border: `1px solid ${getFlagConfig(session.status).bg}40` }}>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+            <div className="flex flex-col">
+              <span className="text-white font-bold text-sm">{session.year} {session.country} Grand Prix</span>
+              <span className="text-gray-400 text-xs">{session.circuit} • {session.name}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <ProminentFlagBanner status={session.status} />
+              {isManual && <span className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-xs px-2 py-0.5 rounded-full">Historical</span>}
+            </div>
+            <div className="lg:ml-auto flex flex-col sm:flex-row sm:items-center gap-3">
+              <WeatherStrip sessionKey={manualSessionKey || session.key} />
+              <SessionSelector onSessionChange={handleSessionChange} currentSessionKey={manualSessionKey} />
+              <div className="flex items-center gap-2 text-xs text-gray-400">
+                {connected ? <><span className="w-2 h-2 rounded-full bg-green-400 animate-pulse-dot" /><span className="text-green-400 font-semibold">LIVE</span></> : <><span className="w-2 h-2 rounded-full bg-red-500" /><span className="text-red-500">OFFLINE</span></>}
+                {lastUpdate && <span className="text-gray-500 ml-2"><TimeAgo date={lastUpdate} /></span>}
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {noLiveSession && !isManual && (
-        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-3 text-yellow-400 text-sm flex items-center gap-2">
-          <span>⚠️</span><span>No live session active. Showing last available data for {session.name} • {session.country} GP</span>
+        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-3 text-yellow-400 text-sm">
+          <div className="flex items-center gap-2">
+            <span>⚠️</span>
+            <span>No live session active. Showing last available data for {session.name} • {session.country} GP</span>
+          </div>
         </div>
       )}
 
@@ -481,20 +548,23 @@ export default function LiveTimingClient() {
                     <th className="text-center hidden xl:table-cell">SEC</th>
                     <th className="text-center">TYRE</th>
                     <th className="text-right hidden sm:table-cell">LAP</th>
+                    <th className="text-right hidden md:table-cell">PITS</th>
                   </tr>
                 </thead>
                 <tbody>
                   {timing.length === 0 ? (
-                    <tr><td colSpan={14} className="py-16 text-center text-gray-600">No timing data — waiting for session...</td></tr>
+                    <tr><td colSpan={15} className="py-16 text-center text-gray-600">No timing data — waiting for session...</td></tr>
                   ) : timing.map((driver) => {
                     const teamColor = driver.teamColor ? `#${driver.teamColor}` : getTeamColor(driver.team);
                     const flash = flashMap.get(driver.driverNumber);
                     const posChange = positionChanges.get(driver.driverNumber);
                     const driverBest = driverBests.get(driver.driverNumber);
+                    const isFastestLap = fastestLapDriver?.driverNumber === driver.driverNumber;
                     return (
                       <tr key={driver.driverNumber}
-                        className={`${flash === 'purple' ? 'flash-session-best' : flash === 'green' ? 'flash-improved' : ''} ${driver.position === 1 ? 'pos-leader' : ''} ${posChange === 'up' ? 'bg-green-500/5' : posChange === 'down' ? 'bg-red-500/5' : ''}`}
-                        style={{ background: driver.position === 1 ? `linear-gradient(90deg, ${teamColor}20 0%, transparent 30%)` : undefined }}>
+                        className={`${flash === 'purple' ? 'flash-session-best' : flash === 'green' ? 'flash-improved' : ''} ${driver.position === 1 ? 'pos-leader' : ''} ${driver.isInPit ? 'bg-orange-500/10' : ''}`}
+                        style={{ background: driver.position === 1 ? `linear-gradient(90deg, ${teamColor}20 0%, transparent 30%)` : undefined }}
+                      >
                         <td>
                           <div className="flex items-center gap-1">
                             <span className={driver.position === 1 ? 'pos-1 mono' : driver.position === 2 ? 'pos-2 mono' : driver.position === 3 ? 'pos-3 mono' : 'pos-n mono'}>{driver.position}</span>
@@ -507,20 +577,47 @@ export default function LiveTimingClient() {
                           <div className="flex items-center gap-2">
                             <div className="w-1 h-6 rounded-full shrink-0" style={{ backgroundColor: teamColor }} />
                             <span className="font-bold text-white text-[13px] uppercase tracking-wide">{driver.acronym}</span>
-                            {driver.isPitOut && <span className="text-[9px] bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded font-bold">PIT</span>}
+                            {isFastestLap && <span className="text-[#BF00FF]" title="Fastest Lap">💜</span>}
+                            {driver.isInPit && (
+                              <span className="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded font-bold animate-pulse-fast">PIT IN</span>
+                            )}
+                            {driver.isPitOut && !driver.isInPit && <span className="text-[9px] bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded font-bold">PIT</span>}
                           </div>
                         </td>
-                        <td className="hidden md:table-cell"><span className="text-gray-400 text-[10px] uppercase tracking-wide truncate max-w-[100px] block">{driver.team?.replace(' F1 Team', '').replace('Oracle Red Bull Racing', 'Red Bull')}</span></td>
+                        <td className="hidden md:table-cell">
+                          <span className="text-gray-400 text-[10px] uppercase tracking-wide truncate max-w-[100px] block">
+                            {driver.team?.replace(' F1 Team', '').replace('Oracle Red Bull Racing', 'Red Bull')}
+                          </span>
+                        </td>
                         <td className="text-right"><GapCell gap={driver.gapToLeader} pos={driver.position} /></td>
-                        <td className="text-right hidden sm:table-cell"><span className="mono text-[11px] text-gray-400 tabular-nums">{driver.interval !== null ? `+${driver.interval.toFixed(3)}` : '—'}</span></td>
-                        <td className="text-right"><span className="mono text-[11px] text-[#BF00FF] tabular-nums font-bold">{formatLapTime(driver.bestLap)}</span></td>
-                        <td className="text-right"><LapCell time={driver.lastLap} best={driver.bestLap} /></td>
-                        <td className="text-right hidden lg:table-cell"><SectorCell time={driver.sector1} personalBest={driverBest?.s1 ?? null} sessionBest={sessionBests.s1} /></td>
-                        <td className="text-right hidden lg:table-cell"><SectorCell time={driver.sector2} personalBest={driverBest?.s2 ?? null} sessionBest={sessionBests.s2} /></td>
-                        <td className="text-right hidden lg:table-cell"><SectorCell time={driver.sector3} personalBest={driverBest?.s3 ?? null} sessionBest={sessionBests.s3} /></td>
-                        <td className="text-center hidden xl:table-cell"><MiniSectors s1={driver.sector1} s2={driver.sector2} s3={driver.sector3} bestS1={driverBest?.s1 ?? null} bestS2={driverBest?.s2 ?? null} bestS3={driverBest?.s3 ?? null} sessionBestS1={sessionBests.s1} sessionBestS2={sessionBests.s2} sessionBestS3={sessionBests.s3} /></td>
-                        <td className="text-center"><TyreBadge compound={driver.tyre} age={driver.tyreAge} /></td>
-                        <td className="text-right hidden sm:table-cell"><span className="mono text-[10px] text-gray-400 tabular-nums">{driver.lapNumber ?? '—'}</span></td>
+                        <td className="text-right hidden sm:table-cell"><IntervalCell interval={driver.interval} /></td>
+                        <td className="text-right">
+                          <BestLapCell time={driver.bestLap} isSessionBest={isFastestLap} />
+                        </td>
+                        <td className="text-right"><LapCell time={driver.lastLap} best={driver.bestLap} sessionBest={sessionBests.lap} /></td>
+                        <td className="text-right hidden lg:table-cell">
+                          <SectorCell time={driver.sector1} personalBest={driverBest?.s1 ?? null} sessionBest={sessionBests.s1} />
+                        </td>
+                        <td className="text-right hidden lg:table-cell">
+                          <SectorCell time={driver.sector2} personalBest={driverBest?.s2 ?? null} sessionBest={sessionBests.s2} />
+                        </td>
+                        <td className="text-right hidden lg:table-cell">
+                          <SectorCell time={driver.sector3} personalBest={driverBest?.s3 ?? null} sessionBest={sessionBests.s3} />
+                        </td>
+                        <td className="text-center hidden xl:table-cell">
+                          <MiniSectors s1={driver.sector1} s2={driver.sector2} s3={driver.sector3} 
+                            bestS1={driverBest?.s1 ?? null} bestS2={driverBest?.s2 ?? null} bestS3={driverBest?.s3 ?? null}
+                            sessionBestS1={sessionBests.s1} sessionBestS2={sessionBests.s2} sessionBestS3={sessionBests.s3} />
+                        </td>
+                        <td className="text-center">
+                          <TyreBadgeWithTooltip compound={driver.tyre} age={driver.tyreAge} />
+                        </td>
+                        <td className="text-right hidden sm:table-cell">
+                          <span className="mono text-[10px] text-gray-400 tabular-nums">{driver.lapNumber ?? '—'}</span>
+                        </td>
+                        <td className="text-right hidden md:table-cell">
+                          <span className="mono text-[10px] text-gray-400 tabular-nums">{driver.pits ?? 0}</span>
+                        </td>
                       </tr>
                     );
                   })}
@@ -532,15 +629,11 @@ export default function LiveTimingClient() {
 
         <aside className="w-48 shrink-0 hidden xl:flex flex-col gap-3">
           <div className="f1-card p-4">
-            <p className="text-gray-400 text-[10px] uppercase tracking-widest mb-3 font-bold">Circuit</p>
-            <CircuitSVG circuit={session.circuit} />
-          </div>
-          <div className="f1-card p-4">
             <p className="text-gray-400 text-[10px] uppercase tracking-widest mb-3 font-bold">Session</p>
             <div className="space-y-2 text-[11px]">
               <div className="flex justify-between"><span className="text-gray-400">Type</span><span className="text-white font-semibold">{session.type}</span></div>
               <div className="flex justify-between"><span className="text-gray-400">Drivers</span><span className="text-white">{timing.length}</span></div>
-              <div className="flex justify-between items-center"><span className="text-gray-400">Status</span><FlagBanner status={session.status} /></div>
+              <div className="flex justify-between items-center"><span className="text-gray-400">Status</span><ProminentFlagBanner status={session.status} /></div>
             </div>
           </div>
           <div className="f1-card p-4">
@@ -556,9 +649,9 @@ export default function LiveTimingClient() {
             <p className="text-gray-400 text-[10px] uppercase tracking-widest mb-3 font-bold">Legend</p>
             <div className="space-y-1.5 text-[10px]">
               <div className="flex items-center gap-2"><span className="mini-sector" style={{ backgroundColor: '#BF00FF' }} /><span className="text-gray-400">Session best</span></div>
-              <div className="flex items-center gap-2"><span className="mini-sector" style={{ backgroundColor: '#00FF00' }} /><span className="text-gray-400">Personal best</span></div>
-              <div className="flex items-center gap-2"><span className="mini-sector" style={{ backgroundColor: '#FFFF00' }} /><span className="text-gray-400">No improvement</span></div>
-              <div className="flex items-center gap-2"><span className="mini-sector" style={{ backgroundColor: '#1a1a1a' }} /><span className="text-gray-400">No data</span></div>
+              <div className="flex items-center gap-2"><span className="mini-sector" style={{ backgroundColor: '#00FF44' }} /><span className="text-gray-400">Personal best</span></div>
+              <div className="flex items-center gap-2"><span className="mini-sector" style={{ backgroundColor: '#FFE600' }} /><span className="text-gray-400">No improvement</span></div>
+              <div className="flex items-center gap-2"><span className="mini-sector" style={{ backgroundColor: '#333' }} /><span className="text-gray-400">No data</span></div>
             </div>
           </div>
         </aside>
