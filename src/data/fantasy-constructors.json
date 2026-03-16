@@ -1,0 +1,13 @@
+[
+  { "id": "mclaren", "name": "McLaren", "price": 32.0, "history": [32.0, 32.0, 32.0, 32.0, 32.0], "priceChange": 0.0 },
+  { "id": "redbull", "name": "Red Bull Racing", "price": 28.0, "history": [28.0, 28.0, 28.0, 28.0, 28.0], "priceChange": 0.0 },
+  { "id": "ferrari", "name": "Ferrari", "price": 27.0, "history": [27.0, 27.0, 27.0, 27.0, 27.0], "priceChange": 0.0 },
+  { "id": "mercedes", "name": "Mercedes", "price": 25.0, "history": [25.0, 25.0, 25.0, 25.0, 25.0], "priceChange": 0.0 },
+  { "id": "williams", "name": "Williams", "price": 18.0, "history": [18.0, 18.0, 18.0, 18.0, 18.0], "priceChange": 0.0 },
+  { "id": "astonmartin", "name": "Aston Martin", "price": 12.0, "history": [12.0, 12.0, 12.0, 12.0, 12.0], "priceChange": 0.0 },
+  { "id": "alpinef1", "name": "Alpine", "price": 10.0, "history": [10.0, 10.0, 10.0, 10.0, 10.0], "priceChange": 0.0 },
+  { "id": "racingbulls", "name": "Racing Bulls", "price": 11.0, "history": [11.0, 11.0, 11.0, 11.0, 11.0], "priceChange": 0.0 },
+  { "id": "haas", "name": "Haas F1 Team", "price": 8.5, "history": [8.5, 8.5, 8.5, 8.5, 8.5], "priceChange": 0.0 },
+  { "id": "audi", "name": "Audi", "price": 9.5, "history": [9.5, 9.5, 9.5, 9.5, 9.5], "priceChange": 0.0 },
+  { "id": "cadillac", "name": "Cadillac", "price": 8.0, "history": [8.0, 8.0, 8.0, 8.0, 8.0], "priceChange": 0.0 }
+]

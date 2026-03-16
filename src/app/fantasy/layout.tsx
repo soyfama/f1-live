@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import FantasySubNav from '@/components/FantasySubNav';
 
 export const metadata: Metadata = {
   title: 'F1 Fantasy 2026 | Live Points & Team Builder',
@@ -12,7 +13,10 @@ export default function FantasyLayout({
 }) {
   return (
     <div className="min-h-screen bg-[#0D0D14]">
-      {children}
+      <FantasySubNav />
+      <main className="pt-11">
+        {children}
+      </main>
     </div>
   );
 }

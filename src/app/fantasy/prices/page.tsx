@@ -1,18 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Trophy, TrendingUp, Users, MessageSquare, LayoutDashboard, ArrowUp, ArrowDown, Minus, Flame } from 'lucide-react';
+import { ArrowUp, ArrowDown, Minus, Flame, Info } from 'lucide-react';
 import type { DriverPrice, TrendType } from '@/lib/fantasy-types';
 
-const FANTASY_LINKS = [
-  { href: '/fantasy', label: 'Overview', icon: LayoutDashboard },
-  { href: '/fantasy/live', label: 'Live Points', icon: Trophy },
-  { href: '/fantasy/prices', label: 'Prices', icon: TrendingUp },
-  { href: '/fantasy/team', label: 'Team', icon: Users },
-  { href: '/fantasy/assistant', label: 'Assistant', icon: MessageSquare },
-];
+interface ConstructorPrice {
+  id: string;
+  name: string;
+  price: number;
+  history: number[];
+  priceChange: number;
+}
 
 type FilterType = 'all' | 'rising' | 'falling' | 'under15';
 
@@ -92,10 +90,11 @@ function Sparkline({ data }: { data: number[] }) {
 }
 
 export default function FantasyPricesPage() {
-  const pathname = usePathname();
   const [drivers, setDrivers] = useState<DriverWithTrend[]>([]);
+  const [constructors, setConstructors] = useState<ConstructorPrice[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>('all');
+  const [lastUpdated, setLastUpdated] = useState<string>('2026-03-16');
   const [stats, setStats] = useState({
     averagePrice: 0,
     highestRiser: null as { driver: string; change: number } | null,
@@ -108,10 +107,18 @@ export default function FantasyPricesPage() {
 
   const fetchPrices = async () => {
     try {
-      const response = await fetch('/api/fantasy/prices');
-      const data = await response.json();
-      setDrivers(data.data || []);
-      setStats(data.stats || { averagePrice: 0, highestRiser: null, biggestFaller: null });
+      const [driversRes, constructorsRes] = await Promise.all([
+        fetch('/api/fantasy/prices'),
+        fetch('/api/fantasy/prices?type=constructors'),
+      ]);
+      
+      const driversData = await driversRes.json();
+      const constructorsData = await constructorsRes.json();
+      
+      setDrivers(driversData.data || []);
+      setConstructors(constructorsData.data || []);
+      setStats(driversData.stats || { averagePrice: 0, highestRiser: null, biggestFaller: null });
+      setLastUpdated(driversData.lastUpdated || '2026-03-16');
       setLoading(false);
     } catch (error) {
       console.error('Error fetching prices:', error);
@@ -133,153 +140,174 @@ export default function FantasyPricesPage() {
   });
 
   return (
-    <div className="pt-14">
-      {/* Fantasy Sub-Navbar */}
-      <div className="sticky top-14 z-40 bg-[#0D0D14] border-b border-[rgba(255,255,255,0.07)]">
-        <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-1 py-2 overflow-x-auto">
-            <span className="text-[#E8002D] font-bold text-sm mr-4 shrink-0">
-              🏁 FANTASY
-            </span>
-            {FANTASY_LINKS.map((link) => {
-              const isActive = pathname === link.href;
-              const Icon = link.icon;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-                    isActive
-                      ? 'bg-[rgba(232,0,45,0.12)] text-white'
-                      : 'text-[#7878A0] hover:text-white hover:bg-[#1C1C2E]'
-                  }`}
-                >
-                  <Icon size={14} />
-                  {link.label}
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+    <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {/* Info Banner */}
+      <div className="f1-card mb-6 border-l-4 border-l-[#00D7B6]">
+        <div className="flex items-start gap-3">
+          <Info className="text-[#00D7B6] shrink-0 mt-0.5" size={20} />
           <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              <TrendingUp className="text-[#E8002D]" size={24} />
-              Price Tracker
-            </h1>
-            <p className="text-sm text-[#7878A0] mt-1">
-              Monitor driver prices and market trends
+            <p className="text-[#EEEEF5] text-sm">
+              Los precios se actualizan los lunes post-carrera según el rendimiento en el juego oficial F1 Fantasy.
+            </p>
+            <p className="text-[#7878A0] text-xs mt-1">
+              Fuente: fantasy.formula1.com | Última actualización: {lastUpdated}
             </p>
           </div>
         </div>
-
-        {/* Stats Header */}
-        {!loading && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="f1-card">
-              <div className="text-xs text-[#7878A0] uppercase tracking-wider mb-1">Average Price</div>
-              <div className="text-2xl font-bold text-white">${stats.averagePrice.toFixed(1)}M</div>
-            </div>
-            
-            {stats.highestRiser && (
-              <div className="f1-card border-l-4 border-l-[#00FF44]">
-                <div className="text-xs text-[#7878A0] uppercase tracking-wider mb-1">🔥 Biggest Riser</div>
-                <div className="text-lg font-bold text-white">{stats.highestRiser.driver}</div>
-                <div className="text-sm text-[#00FF44]">+${stats.highestRiser.change.toFixed(1)}M</div>
-              </div>
-            )}
-            
-            {stats.biggestFaller && (
-              <div className="f1-card border-l-4 border-l-[#FF3333]">
-                <div className="text-xs text-[#7878A0] uppercase tracking-wider mb-1">📉 Biggest Faller</div>
-                <div className="text-lg font-bold text-white">{stats.biggestFaller.driver}</div>
-                <div className="text-sm text-[#FF3333]">${stats.biggestFaller.change.toFixed(1)}M</div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Filters */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          {(['all', 'rising', 'falling', 'under15'] as FilterType[]).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                filter === f
-                  ? 'bg-[#E8002D] text-white'
-                  : 'bg-[#1C1C2E] text-[#7878A0] hover:text-white hover:bg-[#2C2C3E]'
-              }`}
-            >
-              {f === 'all' && 'All Drivers'}
-              {f === 'rising' && 'Rising'}
-              {f === 'falling' && 'Falling'}
-              {f === 'under15' && 'Under $15M'}
-            </button>
-          ))}
-        </div>
-
-        {/* Loading */}
-        {loading && (
-          <div className="f1-card">
-            <div className="flex items-center justify-center py-12">
-              <div className="skeleton w-full h-64" />
-            </div>
-          </div>
-        )}
-
-        {/* Prices Table */}
-        {!loading && (
-          <div className="overflow-x-auto">
-            <table className="premium-table">
-              <thead>
-                <tr>
-                  <th>DRIVER</th>
-                  <th>TEAM</th>
-                  <th className="text-right">PRICE</th>
-                  <th className="text-right">CHANGE</th>
-                  <th>SPARKLINE (5W)</th>
-                  <th>TREND</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredDrivers.map((driver) => (
-                  <tr key={driver.number}>
-                    <td>
-                      <div className="flex items-center gap-3">
-                        <span className="font-bold text-white w-8">{driver.acronym}</span>
-                        <span className="text-[#EEEEF5]">{driver.name}</span>
-                      </div>
-                    </td>
-                    <td className="text-[#7878A0]">{driver.team}</td>
-                    <td className="text-right">
-                      <span className="font-bold text-white">${driver.price.toFixed(1)}M</span>
-                    </td>
-                    <td className="text-right">
-                      <span className={driver.change > 0 ? 'text-[#00FF44]' : driver.change < 0 ? 'text-[#FF3333]' : 'text-[#7878A0]'}>
-                        {driver.change > 0 ? '+' : ''}{driver.change.toFixed(1)}M
-                      </span>
-                    </td>
-                    <td>
-                      <Sparkline data={driver.history} />
-                    </td>
-                    <td>
-                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold ${getTrendColor(driver.trend)}`}>
-                        {getTrendIcon(driver.trend)}
-                        {getTrendLabel(driver.trend)}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
+
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            Price Tracker
+          </h1>
+          <p className="text-sm text-[#7878A0] mt-1">
+            Monitor driver prices and market trends
+          </p>
+        </div>
+      </div>
+
+      {/* Stats Header */}
+      {!loading && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="f1-card">
+            <div className="text-xs text-[#7878A0] uppercase tracking-wider mb-1">Average Price</div>
+            <div className="text-2xl font-bold text-white">${stats.averagePrice.toFixed(1)}M</div>
+          </div>
+          
+          {stats.highestRiser && (
+            <div className="f1-card border-l-4 border-l-[#00FF44]">
+              <div className="text-xs text-[#7878A0] uppercase tracking-wider mb-1">🔥 Biggest Riser</div>
+              <div className="text-lg font-bold text-white">{stats.highestRiser.driver}</div>
+              <div className="text-sm text-[#00FF44]">+${stats.highestRiser.change.toFixed(1)}M</div>
+            </div>
+          )}
+          
+          {stats.biggestFaller && (
+            <div className="f1-card border-l-4 border-l-[#FF3333]">
+              <div className="text-xs text-[#7878A0] uppercase tracking-wider mb-1">📉 Biggest Faller</div>
+              <div className="text-lg font-bold text-white">{stats.biggestFaller.driver}</div>
+              <div className="text-sm text-[#FF3333]">${stats.biggestFaller.change.toFixed(1)}M</div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        {(['all', 'rising', 'falling', 'under15'] as FilterType[]).map((f) => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              filter === f
+                ? 'bg-[#E8002D] text-white'
+                : 'bg-[#1C1C2E] text-[#7878A0] hover:text-white hover:bg-[#2C2C3E]'
+            }`}
+          >
+            {f === 'all' && 'All Drivers'}
+            {f === 'rising' && 'Rising'}
+            {f === 'falling' && 'Falling'}
+            {f === 'under15' && 'Under $15M'}
+          </button>
+        ))}
+      </div>
+
+      {/* Loading */}
+      {loading && (
+        <div className="f1-card">
+          <div className="flex items-center justify-center py-12">
+            <div className="skeleton w-full h-64" />
+          </div>
+        </div>
+      )}
+
+      {/* Drivers Table */}
+      {!loading && (
+        <div className="overflow-x-auto mb-8">
+          <h2 className="text-lg font-bold text-white mb-4">Drivers</h2>
+          <table className="premium-table">
+            <thead>
+              <tr>
+                <th>DRIVER</th>
+                <th>TEAM</th>
+                <th className="text-right">PRICE</th>
+                <th className="text-right">CHANGE</th>
+                <th>SPARKLINE (5W)</th>
+                <th>TREND</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredDrivers.map((driver) => (
+                <tr key={driver.number}>
+                  <td>
+                    <div className="flex items-center gap-3">
+                      <span className="font-bold text-white w-8">{driver.acronym}</span>
+                      <span className="text-[#EEEEF5]">{driver.name}</span>
+                    </div>
+                  </td>
+                  <td className="text-[#7878A0]">{driver.team}</td>
+                  <td className="text-right">
+                    <span className="font-bold text-white">${driver.price.toFixed(1)}M</span>
+                  </td>
+                  <td className="text-right">
+                    <span className={driver.change > 0 ? 'text-[#00FF44]' : driver.change < 0 ? 'text-[#FF3333]' : 'text-[#7878A0]'}>
+                      {driver.change > 0 ? '+' : ''}{driver.change.toFixed(1)}M
+                    </span>
+                  </td>
+                  <td>
+                    <Sparkline data={driver.history} />
+                  </td>
+                  <td>
+                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-bold ${getTrendColor(driver.trend)}`}>
+                      {getTrendIcon(driver.trend)}
+                      {getTrendLabel(driver.trend)}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Constructors Table */}
+      {!loading && constructors.length > 0 && (
+        <div className="overflow-x-auto">
+          <h2 className="text-lg font-bold text-white mb-4">Constructors</h2>
+          <table className="premium-table">
+            <thead>
+              <tr>
+                <th>CONSTRUCTOR</th>
+                <th className="text-right">PRICE</th>
+                <th className="text-right">CHANGE</th>
+                <th>SPARKLINE (5W)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {constructors.map((constructor) => (
+                <tr key={constructor.id}>
+                  <td>
+                    <span className="font-bold text-white">{constructor.name}</span>
+                  </td>
+                  <td className="text-right">
+                    <span className="font-bold text-white">${constructor.price.toFixed(1)}M</span>
+                  </td>
+                  <td className="text-right">
+                    <span className={constructor.priceChange > 0 ? 'text-[#00FF44]' : constructor.priceChange < 0 ? 'text-[#FF3333]' : 'text-[#7878A0]'}>
+                      {constructor.priceChange > 0 ? '+' : ''}{constructor.priceChange.toFixed(1)}M
+                    </span>
+                  </td>
+                  <td>
+                    <Sparkline data={constructor.history} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
