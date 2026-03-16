@@ -7,6 +7,15 @@ export interface DriverPrice {
   team: string;
   price: number;
   history: number[]; // Last 5 weeks
+  priceChange?: number;
+}
+
+export interface ConstructorPrice {
+  id: string;
+  name: string;
+  price: number;
+  history: number[]; // Last 5 weeks
+  priceChange?: number;
 }
 
 export interface DriverFantasyPoints {

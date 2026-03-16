@@ -1,18 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Trophy, TrendingUp, Users, MessageSquare, LayoutDashboard, Zap, AlertCircle, RefreshCw } from 'lucide-react';
+import { Trophy, Zap, AlertCircle, RefreshCw } from 'lucide-react';
 import type { DriverFantasyPoints } from '@/lib/fantasy-types';
-
-const FANTASY_LINKS = [
-  { href: '/fantasy', label: 'Overview', icon: LayoutDashboard },
-  { href: '/fantasy/live', label: 'Live Points', icon: Trophy },
-  { href: '/fantasy/prices', label: 'Prices', icon: TrendingUp },
-  { href: '/fantasy/team', label: 'Team', icon: Users },
-  { href: '/fantasy/assistant', label: 'Assistant', icon: MessageSquare },
-];
 
 function getTotalColor(total: number): string {
   if (total > 40) return 'text-[#00FF44] font-bold';
@@ -41,7 +31,6 @@ function getTeamBadgeColor(teamName: string): string {
 }
 
 export default function FantasyLivePage() {
-  const pathname = usePathname();
   const [points, setPoints] = useState<DriverFantasyPoints[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -74,211 +63,180 @@ export default function FantasyLivePage() {
   }, []);
 
   return (
-    <div className="pt-14">
-      {/* Fantasy Sub-Navbar */}
-      <div className="sticky top-14 z-40 bg-[#0D0D14] border-b border-[rgba(255,255,255,0.07)]">
-        <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-1 py-2 overflow-x-auto">
-            <span className="text-[#E8002D] font-bold text-sm mr-4 shrink-0">
-              🏁 FANTASY
+    <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <Trophy className="text-[#E8002D]" size={24} />
+            Live Fantasy Points
+          </h1>
+          <p className="text-sm text-[#7878A0] mt-1">
+            Real-time scoring based on latest race session
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          {lastUpdate && (
+            <span className="text-xs text-[#7878A0]">
+              Updated: {lastUpdate.toLocaleTimeString()}
             </span>
-            {FANTASY_LINKS.map((link) => {
-              const isActive = pathname === link.href;
-              const Icon = link.icon;
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-                    isActive
-                      ? 'bg-[rgba(232,0,45,0.12)] text-white'
-                      : 'text-[#7878A0] hover:text-white hover:bg-[#1C1C2E]'
-                  }`}
-                >
-                  <Icon size={14} />
-                  {link.label}
-                </Link>
-              );
-            })}
-          </div>
+          )}
+          <button
+            onClick={fetchPoints}
+            disabled={loading}
+            className="flex items-center gap-2 px-3 py-1.5 bg-[#1C1C2E] text-white rounded-lg text-sm font-medium hover:bg-[#2C2C3E] transition-colors disabled:opacity-50"
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            Refresh
+          </button>
         </div>
       </div>
 
-      <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              <Trophy className="text-[#E8002D]" size={24} />
-              Live Fantasy Points
-            </h1>
-            <p className="text-sm text-[#7878A0] mt-1">
-              Real-time scoring based on latest race session
-            </p>
-          </div>
+      {/* Status Banner */}
+      {error && (
+        <div className="f1-card mb-6 border-l-4 border-l-[#FFE600]">
           <div className="flex items-center gap-3">
-            {lastUpdate && (
-              <span className="text-xs text-[#7878A0]">
-                Updated: {lastUpdate.toLocaleTimeString()}
-              </span>
-            )}
-            <button
-              onClick={fetchPoints}
-              disabled={loading}
-              className="flex items-center gap-2 px-3 py-1.5 bg-[#1C1C2E] text-white rounded-lg text-sm font-medium hover:bg-[#2C2C3E] transition-colors disabled:opacity-50"
-            >
-              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-              Refresh
-            </button>
-          </div>
-        </div>
-
-        {/* Status Banner */}
-        {error && (
-          <div className="f1-card mb-6 border-l-4 border-l-[#FFE600]">
-            <div className="flex items-center gap-3">
-              <AlertCircle className="text-[#FFE600]" size={20} />
-              <div>
-                <p className="text-white font-medium">{error}</p>
-                <p className="text-sm text-[#7878A0]">
-                  Showing data from the most recent available session
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Loading State */}
-        {loading && (
-          <div className="f1-card">
-            <div className="flex items-center justify-center py-12">
-              <div className="flex items-center gap-3">
-                <RefreshCw size={20} className="animate-spin text-[#E8002D]" />
-                <span className="text-[#7878A0]">Loading fantasy points...</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Points Table */}
-        {!loading && points.length > 0 && (
-          <div className="overflow-x-auto">
-            <table className="premium-table">
-              <thead>
-                <tr>
-                  <th className="text-center w-12">POS</th>
-                  <th>DRIVER</th>
-                  <th className="text-right">PRICE</th>
-                  <th className="text-center">QUAL</th>
-                  <th className="text-center">RACE</th>
-                  <th className="text-center">+/-</th>
-                  <th className="text-center">FL</th>
-                  <th className="text-center">PITS</th>
-                  <th className="text-center">BEAT</th>
-                  <th className="text-right">TOTAL</th>
-                </tr>
-              </thead>
-              <tbody>
-                {points.map((driver, index) => (
-                  <tr 
-                    key={driver.driverNumber}
-                    className={driver.isDNF ? 'bg-[rgba(255,51,51,0.08)]' : ''}
-                  >
-                    <td className="text-center">
-                      <span className={`font-bold ${
-                        index === 0 ? 'text-[#FFD700]' :
-                        index === 1 ? 'text-[#C0C0C0]' :
-                        index === 2 ? 'text-[#CD7F32]' :
-                        'text-[#7878A0]'
-                      }`}>
-                        {index + 1}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="flex items-center gap-3">
-                        <div className={`w-1 h-8 rounded-full ${getTeamBadgeColor(driver.team)}`} />
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-white">{driver.acronym}</span>
-                            {driver.fastestLap && (
-                              <span className="text-[#BF00FF]" title="Fastest Lap">⚡</span>
-                            )}
-                            {driver.isDNF && (
-                              <span className="text-[#FF3333]" title={`DNF - ${driver.dnfType}`}>💥</span>
-                            )}
-                          </div>
-                          <div className="text-xs text-[#7878A0]">{driver.team}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="text-right text-[#7878A0]">
-                      ${driver.price.toFixed(1)}M
-                    </td>
-                    <td className="text-center">
-                      <span className={driver.qualifyingPoints > 0 ? 'text-[#00FF44]' : driver.qualifyingPoints < 0 ? 'text-[#FF3333]' : 'text-[#7878A0]'}>
-                        {driver.qualifyingPoints > 0 ? '+' : ''}{driver.qualifyingPoints || 0}
-                      </span>
-                    </td>
-                    <td className="text-center">
-                      <span className={driver.racePoints > 0 ? 'text-white font-medium' : 'text-[#7878A0]'}>
-                        {driver.racePoints || 0}
-                      </span>
-                    </td>
-                    <td className="text-center">
-                      <span className={
-                        (driver.positionBonus || 0) > 0 ? 'text-[#00FF44]' :
-                        (driver.positionBonus || 0) < 0 ? 'text-[#FF3333]' :
-                        'text-[#7878A0]'
-                      }>
-                        {(driver.positionBonus || 0) > 0 ? '+' : ''}{driver.positionBonus || 0}
-                      </span>
-                    </td>
-                    <td className="text-center">
-                      <span className={driver.fastestLapBonus > 0 ? 'text-[#BF00FF]' : 'text-[#7878A0]'}>
-                        {driver.fastestLapBonus > 0 ? `+${driver.fastestLapBonus}` : 0}
-                      </span>
-                    </td>
-                    <td className="text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        <RefreshCw size={12} className="text-[#7878A0]" />
-                        <span className={driver.pitPenalty < 0 ? 'text-[#FF3333]' : 'text-[#7878A0]'}>
-                          {driver.pitStops}
-                        </span>
-                        {driver.pitPenalty < 0 && (
-                          <span className="text-[#FF3333] text-xs">({driver.pitPenalty})</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="text-center">
-                      <span className={driver.teammateBeatBonus > 0 ? 'text-[#00FF44]' : 'text-[#7878A0]'}>
-                        {driver.teammateBeatBonus > 0 ? `+${driver.teammateBeatBonus}` : 0}
-                      </span>
-                    </td>
-                    <td className="text-right">
-                      <span className={`text-lg ${getTotalColor(driver.total)}`}>
-                        {driver.total} pts
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Empty State */}
-        {!loading && points.length === 0 && (
-          <div className="f1-card">
-            <div className="empty-state">
-              <Trophy size={48} className="text-[#4A4A6A]" />
-              <h3 className="text-lg font-medium text-white">No data available</h3>
+            <AlertCircle className="text-[#FFE600]" size={20} />
+            <div>
+              <p className="text-white font-medium">{error}</p>
               <p className="text-sm text-[#7878A0]">
-                Fantasy points will appear here when a race session is active.
+                Showing data from the most recent available session
               </p>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="f1-card">
+          <div className="flex items-center justify-center py-12">
+            <div className="flex items-center gap-3">
+              <RefreshCw size={20} className="animate-spin text-[#E8002D]" />
+              <span className="text-[#7878A0]">Loading fantasy points...</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Points Table */}
+      {!loading && points.length > 0 && (
+        <div className="overflow-x-auto">
+          <table className="premium-table">
+            <thead>
+              <tr>
+                <th className="text-center w-12">POS</th>
+                <th>DRIVER</th>
+                <th className="text-right">PRICE</th>
+                <th className="text-center">QUAL</th>
+                <th className="text-center">RACE</th>
+                <th className="text-center">+/-</th>
+                <th className="text-center">FL</th>
+                <th className="text-center">PITS</th>
+                <th className="text-center">BEAT</th>
+                <th className="text-right">TOTAL</th>
+              </tr>
+            </thead>
+            <tbody>
+              {points.map((driver, index) => (
+                <tr 
+                  key={driver.driverNumber}
+                  className={driver.isDNF ? 'bg-[rgba(255,51,51,0.08)]' : ''}
+                >
+                  <td className="text-center">
+                    <span className={`font-bold ${
+                      index === 0 ? 'text-[#FFD700]' :
+                      index === 1 ? 'text-[#C0C0C0]' :
+                      index === 2 ? 'text-[#CD7F32]' :
+                      'text-[#7878A0]'
+                    }`}>
+                      {index + 1}
+                    </span>
+                  </td>
+                  <td>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-1 h-8 rounded-full ${getTeamBadgeColor(driver.team)}`} />
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-white">{driver.acronym}</span>
+                          {driver.fastestLap && (
+                            <span className="text-[#BF00FF]" title="Fastest Lap">⚡</span>
+                          )}
+                          {driver.isDNF && (
+                            <span className="text-[#FF3333]" title={`DNF - ${driver.dnfType}`}>💥</span>
+                          )}
+                        </div>
+                        <div className="text-xs text-[#7878A0]">{driver.team}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="text-right text-[#7878A0]">
+                    ${driver.price.toFixed(1)}M
+                  </td>
+                  <td className="text-center">
+                    <span className={driver.qualifyingPoints > 0 ? 'text-[#00FF44]' : driver.qualifyingPoints < 0 ? 'text-[#FF3333]' : 'text-[#7878A0]'}>
+                      {driver.qualifyingPoints > 0 ? '+' : ''}{driver.qualifyingPoints || 0}
+                    </span>
+                  </td>
+                  <td className="text-center">
+                    <span className={driver.racePoints > 0 ? 'text-white font-medium' : 'text-[#7878A0]'}>
+                      {driver.racePoints || 0}
+                    </span>
+                  </td>
+                  <td className="text-center">
+                    <span className={
+                      (driver.positionBonus || 0) > 0 ? 'text-[#00FF44]' :
+                      (driver.positionBonus || 0) < 0 ? 'text-[#FF3333]' :
+                      'text-[#7878A0]'
+                    }>
+                      {(driver.positionBonus || 0) > 0 ? '+' : ''}{driver.positionBonus || 0}
+                    </span>
+                  </td>
+                  <td className="text-center">
+                    <span className={driver.fastestLapBonus > 0 ? 'text-[#BF00FF]' : 'text-[#7878A0]'}>
+                      {driver.fastestLapBonus > 0 ? `+${driver.fastestLapBonus}` : 0}
+                    </span>
+                  </td>
+                  <td className="text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <RefreshCw size={12} className="text-[#7878A0]" />
+                      <span className={driver.pitPenalty < 0 ? 'text-[#FF3333]' : 'text-[#7878A0]'}>
+                        {driver.pitStops}
+                      </span>
+                      {driver.pitPenalty < 0 && (
+                        <span className="text-[#FF3333] text-xs">({driver.pitPenalty})</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="text-center">
+                    <span className={driver.teammateBeatBonus > 0 ? 'text-[#00FF44]' : 'text-[#7878A0]'}>
+                      {driver.teammateBeatBonus > 0 ? `+${driver.teammateBeatBonus}` : 0}
+                    </span>
+                  </td>
+                  <td className="text-right">
+                    <span className={`text-lg ${getTotalColor(driver.total)}`}>
+                      {driver.total} pts
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!loading && points.length === 0 && (
+        <div className="f1-card">
+          <div className="empty-state">
+            <Trophy size={48} className="text-[#4A4A6A]" />
+            <h3 className="text-lg font-medium text-white">No data available</h3>
+            <p className="text-sm text-[#7878A0]">
+              Fantasy points will appear here when a race session is active.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
