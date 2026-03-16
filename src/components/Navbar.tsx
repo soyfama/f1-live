@@ -11,6 +11,7 @@ const NAV_LINKS = [
   { href: '/telemetry',  label: 'Telemetry',  dot: false },
   { href: '/standings',  label: 'Standings',  dot: false },
   { href: '/calendar',   label: 'Calendar',   dot: false },
+  { href: '/fantasy',    label: 'Fantasy',    dot: false, new: true },
 ];
 
 export default function Navbar() {
@@ -46,6 +47,9 @@ export default function Navbar() {
                   <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-[#E8002D] animate-pulse-dot' : 'bg-[#4A4A6A]'}`} />
                 )}
                 {link.label}
+                {link.new && (
+                  <span className="text-[10px] bg-[#E8002D] text-white px-1.5 py-0.5 rounded font-bold">NEW</span>
+                )}
               </Link>
             );
           })}
@@ -96,7 +100,12 @@ export default function Navbar() {
                     <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-[#E8002D] animate-pulse-dot' : 'bg-[#4A4A6A]'}`} />
                   )}
                   {!link.dot && <span className="w-2 h-2 rounded-full bg-transparent" />}
-                  {link.label}
+                  <span className="flex items-center gap-2">
+                    {link.label}
+                    {link.new && (
+                      <span className="text-[10px] bg-[#E8002D] text-white px-1.5 py-0.5 rounded font-bold">NEW</span>
+                    )}
+                  </span>
                 </Link>
               );
             })}
