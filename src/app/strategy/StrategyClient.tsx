@@ -4,6 +4,47 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { formatLapTime } from '@/lib/openf1';
 
+// Componente LandscapePrompt
+function LandscapePrompt() {
+  const [isPortrait, setIsPortrait] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    const check = () => {
+      const isMobile = window.innerWidth < 768;
+      const portrait = window.innerHeight > window.innerWidth;
+      setIsPortrait(isMobile && portrait);
+    };
+    check();
+    window.addEventListener('resize', check);
+    window.addEventListener('orientationchange', check);
+    return () => {
+      window.removeEventListener('resize', check);
+      window.removeEventListener('orientationchange', check);
+    };
+  }, []);
+
+  if (!isPortrait || dismissed) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-[#0D0D14] flex flex-col items-center justify-center px-8 text-center">
+      <div className="text-6xl mb-6 animate-bounce">📱</div>
+      <div className="text-5xl mb-6">↺</div>
+      <h2 className="text-white text-xl font-bold mb-3">Rotate your device</h2>
+      <p className="text-[#7878A0] text-sm">
+        Strategy page works best in landscape mode.<br/>
+        Turn your phone sideways for the full experience.
+      </p>
+      <button
+        onClick={() => setDismissed(true)}
+        className="mt-6 text-[#7878A0] text-sm underline"
+      >
+        Continue anyway
+      </button>
+    </div>
+  );
+}
+
 interface StintConfig { compound: 'SOFT' | 'MEDIUM' | 'HARD'; laps: number; }
 interface Strategy { 
   id: string; 
@@ -101,10 +142,17 @@ export default function StrategyClient() {
       .then(r => r.json())
       .then((data: Array<{ meeting_key: number; meeting_name: string; country_name: string; date_start?: string }>) => {
         const opts = data.map(m => ({ meetingKey: m.meeting_key, label: `${m.country_name} — ${m.meeting_name}`, dateStart: m.date_start }));
-        const sortedOpts = [...opts].sort((a, b) => b.meetingKey - a.meetingKey);
+        // Sort by date_start ascending (chronological order)
+        const sortedOpts = [...opts].sort((a, b) => {
+          const dateA = a.dateStart ? new Date(a.dateStart).getTime() : 0;
+          const dateB = b.dateStart ? new Date(b.dateStart).getTime() : 0;
+          return dateA - dateB;
+        });
         setMeetings(sortedOpts);
-        const pastMeetings = sortedOpts.filter((m: any) => m.dateStart && new Date(m.dateStart).getTime() <= Date.now());
-        const defaultKey = pastMeetings.length > 0 ? pastMeetings[0].meetingKey : 1279;
+        // Find the most recent past meeting
+        const now = Date.now();
+        const pastMeetings = sortedOpts.filter((m: any) => m.dateStart && new Date(m.dateStart).getTime() <= now);
+        const defaultKey = pastMeetings.length > 0 ? pastMeetings[pastMeetings.length - 1].meetingKey : 1280;
         setSelectedMeeting(defaultKey);
       })
       .catch(() => {});
@@ -264,7 +312,9 @@ export default function StrategyClient() {
   }
 
   return (
-    <div className="flex flex-col lg:flex-row w-full min-h-[calc(100vh-3.5rem)]">
+    <>
+      <LandscapePrompt />
+      <div className="flex flex-col lg:flex-row w-full min-h-[calc(100vh-3.5rem)]">
       <aside className="w-full lg:w-[260px] shrink-0 border-b lg:border-b-0 lg:border-r border-[rgba(255,255,255,0.07)] bg-[#13131F] py-4 px-3 overflow-y-auto">
         <h2 className="text-[#EEEEF5] font-bold text-base mb-0.5 px-3">Strategy Simulator</h2>
         <p className="text-[#7878A0] text-xs mb-5 px-3 font-mono">Configure parameters</p>
@@ -452,5 +502,6 @@ export default function StrategyClient() {
         </div>
       </div>
     </div>
+    </>
   );
 }

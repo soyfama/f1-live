@@ -44,11 +44,17 @@ export default function AnalyticsClient() {
       .then(r => r.json())
       .then((data: Array<{ meeting_key: number; meeting_name: string; country_name: string; date_start?: string }>) => {
         const opts = data.map(m => ({ value: String(m.meeting_key), label: `${m.country_name} — ${m.meeting_name}`, meetingKey: m.meeting_key, dateStart: m.date_start }));
-        const sortedOpts = [...opts].sort((a, b) => b.meetingKey - a.meetingKey);
+        // Sort by date_start ascending (chronological order)
+        const sortedOpts = [...opts].sort((a, b) => {
+          const dateA = a.dateStart ? new Date(a.dateStart).getTime() : 0;
+          const dateB = b.dateStart ? new Date(b.dateStart).getTime() : 0;
+          return dateA - dateB;
+        });
         setMeetings(sortedOpts);
+        // Find the most recent past meeting
         const now = Date.now();
         const pastMeetings = sortedOpts.filter((m: any) => m.dateStart && new Date(m.dateStart).getTime() <= now);
-        const defaultKey = pastMeetings.length > 0 ? pastMeetings[0].meetingKey : 1279;
+        const defaultKey = pastMeetings.length > 0 ? pastMeetings[pastMeetings.length - 1].meetingKey : 1280;
         setSelectedMeeting(defaultKey);
       })
       .catch(() => {});
